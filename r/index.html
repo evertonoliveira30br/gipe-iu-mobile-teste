@@ -145,11 +145,8 @@
 <script>
 (function(){
   var API = 'https://api.gipepark.com.br/api/v1/patio/recibo/cliente?token=';
-  // Solicitação de nota fiscal:
-  //  - quando existir o endpoint, coloque a URL aqui (recebe POST { token, documento, email })
-  //  - enquanto estiver vazio, a solicitação vai por WhatsApp para o estacionamento
-  var API_NOTA_FISCAL = '';
-  var WHATSAPP_ESTACIONAMENTO = '5511979742680';
+  // Solicitação de nota fiscal (POST { token, documento, email, valor })
+  var API_NOTA_FISCAL = 'https://api.gipepark.com.br/api/v1/nota-fiscal/cliente/solicitar';
   var CATEGORIAS = { 1:'Moto', 2:'Carro pequeno', 3:'Carro médio', 4:'Carro grande', 5:'Caminhonete', 6:'Caminhão' };
   var FORMAS = { 1:'Dinheiro', 2:'PIX', 3:'Cartão de débito', 4:'Cartão de crédito' };
 
@@ -368,23 +365,25 @@
       marcarNf(info); fecharNf();
       $('nfOk').scrollIntoView({ behavior:'smooth', block:'center' });
     };
-    if (API_NOTA_FISCAL){
-      var b = $('nfEnviar'); b.disabled = true; b.textContent = 'Enviando…';
-      fetch(API_NOTA_FISCAL, { method:'POST', headers:{ 'Content-Type':'application/json', 'Accept':'application/json' },
-        body: JSON.stringify({ token: token, tipoPessoa: tipoPessoa, documento: doc || null, email: email }) })
-        .then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); concluir(); })
-        .catch(function(){ $('nfErr').textContent = 'Não foi possível enviar agora. Tente novamente.'; })
-        .then(function(){ b.disabled = false; b.textContent = 'Enviar solicitação'; });
-    } else {
-      var d = dados || {};
-      var msg = 'Olá! Gostaria de solicitar a nota fiscal do estacionamento.'
-        + (d.ticket ? '\nTicket: ' + d.ticket : '') + (d.placa ? '\nPlaca: ' + d.placa : '')
-        + (d.saida ? '\nSaída: ' + dataHora(d.saida) : '') + (d.valor !== null && d.valor !== undefined ? '\nValor: ' + brl(d.valor) : '')
-        + '\n' + (pj ? 'Pessoa Jurídica · CNPJ: ' + mascaraCnpjDig(doc) : 'Pessoa Física' + (doc ? ' · CPF: ' + mascaraCpf(doc) : ''))
-        + '\nE-mail: ' + email + '\nRecibo: ' + location.href;
-      window.open('https://wa.me/' + WHATSAPP_ESTACIONAMENTO + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
-      concluir();
-    }
+    var docFmt = !doc ? null : (pj ? mascaraCnpjDig(doc) : mascaraCpf(doc));
+    var b = $('nfEnviar'), bc = $('nfCancelar');
+    b.disabled = true; bc.disabled = true; b.textContent = 'Enviando…';
+    fetch(API_NOTA_FISCAL, { method:'POST', headers:{ 'Content-Type':'application/json', 'Accept':'application/json' }, cache:'no-store',
+      body: JSON.stringify({ token: token, documento: docFmt, email: email, valor: dados && dados.valor !== null ? dados.valor : null }) })
+      .then(function(r){
+        return r.text().then(function(txt){
+          if (r.ok) return concluir();
+          var j = null; try { j = txt ? JSON.parse(txt) : null; } catch(er){}
+          var m = j && (j.mensagem || j.message || j.erro || j.error || j.detail || j.title);
+          if (j && Array.isArray(j.erros) && j.erros.length) m = j.erros.map(function(x){ return x.mensagem || x.message || x; }).join(' ');
+          throw new Error(typeof m === 'string' && m ? m : 'Não foi possível solicitar a nota fiscal (erro ' + r.status + ').');
+        });
+      })
+      .catch(function(er){
+        $('nfErr').textContent = (er && er.message && !/Failed to fetch|NetworkError|Load failed/i.test(er.message))
+          ? er.message : 'Sem conexão com o servidor. Verifique sua internet e tente novamente.';
+      })
+      .then(function(){ b.disabled = false; bc.disabled = false; b.textContent = 'Enviar solicitação'; });
   });
 
   /* ---------- Consulta ---------- */
