@@ -91,7 +91,8 @@
   .ticket{flex:1;min-height:0;background:#fff;border-radius:20px;display:flex;flex-direction:column;overflow:hidden}
   .t-head{padding:18px 20px 14px;display:flex;flex-direction:column;gap:4px;border-top:8px solid var(--yellow)}
   .t-name{font-size:21px;font-weight:700}
-  .t-addr{font-size:13px;color:var(--muted);line-height:1.45}
+  .t-addr{font-size:13px;color:var(--muted);line-height:1.45;display:flex;flex-direction:column}
+  .t-addr span:empty{display:none}
   .t-plate-row{padding:0 20px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
   .t-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 12px;padding:0 20px 18px}
   .t-grid div{display:flex;flex-direction:column;gap:2px}
@@ -549,6 +550,7 @@
         if (!tk){ console.warn('[GIPE login] resposta sem token:', d); throw new Error('A API não devolveu o token de acesso.'); }
         var p = payloadJwt(tk);
         var nome = acharNome(d) || p['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || p.name || p.unique_name || p.email || login;
+        if (window.gipeEst) gipeEst.obter(d);   // guarda nome/endereço/CNPJ/telefone do estacionamento, se vierem no login
         entrar({ token: tk, exp: p.exp || null, nome: nome, login: login });
       });
     }).catch(function(e){
@@ -906,15 +908,11 @@
           O cupom aparece aqui depois de confirmar a entrada na tela A.
         </div>
         <div id="dBody" hidden style="display:flex;flex-direction:column;gap:12px;flex:1">
-          <div class="ok-head">
-            <span class="ok-dot"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
-            <span id="dOkTxt">Entrada registrada</span>
-          </div>
           <div class="ticket" id="dTicketBox">
             <div class="t-mensal" id="dMensal" hidden><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/></svg>MENSALISTA</div>
             <div class="t-head">
-              <div class="t-name">[NOME DO ESTACIONAMENTO]</div>
-              <div class="t-addr">[ENDEREÇO] · CNPJ [00.000.000/0001-00]<br>Tel. [(11) 0000-0000]</div>
+              <div class="t-name" id="dEstNome">Estacionamento</div>
+              <div class="t-addr"><span id="dEstEnd"></span><span id="dEstCnpj"></span><span id="dEstTel"></span></div>
             </div>
             <div class="t-plate-row">
               <div class="mplate merco" id="dPlate"><div class="band" id="dBand">BRASIL</div><div class="num" id="dPlaca">—</div></div>
@@ -1354,6 +1352,61 @@
     return t || null;                    // cor fora da paleta: guarda o nome que veio da API
   }
 
+  /* ---- Dados do estacionamento (nome, endereço, CNPJ, telefone) ----
+     Procura em qualquer resposta da API (login, entrada, pátio, saída) e guarda no aparelho. */
+  var CHAVE_EST = 'gipe-estacionamento';
+  function estTxt(v){ return (v === undefined || v === null || typeof v === 'object') ? '' : String(v).trim(); }
+  function estMascaraCnpj(v){ var d = String(v || '').replace(/\D/g, ''); return d.length === 14 ? d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') : String(v || ''); }
+  function estMascaraTel(v){
+    var d = String(v || '').replace(/\D/g, '');
+    if (d.length > 11 && d.indexOf('55') === 0) d = d.slice(2);
+    if (d.length === 11) return '(' + d.slice(0,2) + ') ' + d.slice(2,7) + '-' + d.slice(7);
+    if (d.length === 10) return '(' + d.slice(0,2) + ') ' + d.slice(2,6) + '-' + d.slice(6);
+    return String(v || '');
+  }
+  function estEndereco(v){
+    if (!v) return '';
+    if (typeof v === 'string') return v;
+    var rua = [estTxt(campo(v, ['logradouro','rua','endereco'])), estTxt(campo(v, ['numero']))].filter(Boolean).join(', ');
+    var cid = [estTxt(campo(v, ['bairro'])), [estTxt(campo(v, ['cidade','municipio'])), estTxt(campo(v, ['uf','estado']))].filter(Boolean).join('/')].filter(Boolean).join(' · ');
+    return [rua, cid].filter(Boolean).join(' · ');
+  }
+  function estAchar(o, prof){   // procura um objeto "estacionamento" / "empresa" / "unidade" em até 3 níveis
+    if (!o || typeof o !== 'object' || prof > 3) return null;
+    var ch = Object.keys(o), i, k;
+    for (i = 0; i < ch.length; i++){ k = ch[i].toLowerCase(); if ((k === 'estacionamento' || k === 'empresa' || k === 'unidade') && o[ch[i]] && typeof o[ch[i]] === 'object' && !Array.isArray(o[ch[i]])) return o[ch[i]]; }
+    for (i = 0; i < ch.length; i++){ if (o[ch[i]] && typeof o[ch[i]] === 'object' && !Array.isArray(o[ch[i]])){ var r = estAchar(o[ch[i]], prof + 1); if (r) return r; } }
+    return null;
+  }
+  function estDe(resp){
+    if (!resp || typeof resp !== 'object') return null;
+    var e = estAchar(resp, 0);
+    var tel = e ? campo(e, ['telefone','fone','celular','whatsapp','contato']) : undefined;
+    if (tel && typeof tel === 'object') tel = campo(tel, ['numero','telefone']);
+    var r = {
+      nome: (e ? estTxt(campo(e, ['nomeFantasia','nome','razaoSocial'])) : '') || estTxt(campo(resp, ['nomeEstacionamento','nomeEmpresa','nomeFantasia'])),
+      endereco: (e ? estEndereco(campo(e, ['endereco','enderecoCompleto','logradouro'])) : '') || estTxt(campo(resp, ['enderecoEstacionamento','enderecoEmpresa'])),
+      cnpj: estMascaraCnpj((e ? estTxt(campo(e, ['cnpj','documento'])) : '') || estTxt(campo(resp, ['cnpjEstacionamento','cnpjEmpresa']))),
+      telefone: estMascaraTel(estTxt(tel) || estTxt(campo(resp, ['telefoneEstacionamento','telefoneEmpresa'])))
+    };
+    return (r.nome || r.endereco || r.cnpj || r.telefone) ? r : null;
+  }
+  function estGuardado(){ try { return JSON.parse(localStorage.getItem(CHAVE_EST) || 'null'); } catch(e){ return null; } }
+  function estSalvar(e){
+    if (!e) return null;
+    var a = estGuardado() || {}, n = {};
+    ['nome','endereco','cnpj','telefone'].forEach(function(k){ n[k] = e[k] || a[k] || ''; });
+    try { localStorage.setItem(CHAVE_EST, JSON.stringify(n)); } catch(x){}
+    return n;
+  }
+  // Lê a(s) resposta(s), guarda o que achar e devolve o melhor dado disponível
+  function estObter(){
+    var achou = null;
+    for (var i = 0; i < arguments.length; i++){ var e = estDe(arguments[i]); if (e){ achou = estSalvar(e); break; } }
+    return achou || estGuardado();
+  }
+  window.gipeEst = { de: estDe, salvar: estSalvar, obter: estObter, guardado: estGuardado };
+
   window.gipeApi = {
     get: function(caminho){ return apiFetch(caminho); },
     post: function(caminho, corpo){ return apiFetch(caminho, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(corpo) }); },
@@ -1474,6 +1527,12 @@
   var URL_COMPROVANTE = (/^https?:$/.test(location.protocol) ? new URL('../c/', location.href).href : 'https://evertonoliveira30br.github.io/gipe-iu-mobile-teste/c/') + '?t=';
   function registrarNaTela(resp){
     var d = new Date(); entradaEm = d.getTime();
+    var est = window.gipeEst ? gipeEst.obter(resp) : null;
+    if (!est || !est.nome) console.warn('[GIPE] nome/endereço/CNPJ/telefone do estacionamento não vieram na API (login, pátio ou entrada)', resp);
+    $('dEstNome').textContent = (est && est.nome) || 'Estacionamento';
+    $('dEstEnd').textContent = (est && est.endereco) || '';
+    $('dEstCnpj').textContent = est && est.cnpj ? 'CNPJ ' + est.cnpj : '';
+    $('dEstTel').textContent = est && est.telefone ? 'Tel. ' + est.telefone : '';
     var tokenApi = campo(resp, ['token','tokenTicket','tokenSaida','tokenEntrada','qrCode','qrcode']);
     if (tokenApi !== undefined && typeof tokenApi === 'object') tokenApi = undefined;
     if (!tokenApi) console.warn('[GIPE] patio/entrada não devolveu "token" — o QR usa um código local', resp);
@@ -1490,7 +1549,6 @@
     var m = mensal;
 
     // O / D – visual do cupom
-    $('dOkTxt').textContent = ehMensal ? 'Entrada registrada · Mensalista' : 'Entrada registrada';
     $('dMensal').hidden = !ehMensal;
     $('dTicketBox').classList.toggle('mensal', ehMensal);
     $('dCatBox').hidden = ehMensal; $('dVeicBox').hidden = ehMensal;
@@ -2037,6 +2095,7 @@
     patioCarregando = true;
     if (!silencioso){ $('patNota').textContent = 'Carregando o pátio…'; $('patAtualizar').classList.add('girando'); }
     gipeApi.get('/patio').then(function(d){
+      if (window.gipeEst) gipeEst.obter(d);
       var lista = acharLista(d) || [];
       var vg = gipeApi.campo(d, ['totalVagas','vagasTotais','qtdVagas','quantidadeVagas','capacidade','vagas','numeroVagas']);
       vg = (typeof vg === 'object') ? null : parseInt(vg, 10);
@@ -2482,6 +2541,7 @@
       if (seq !== buscaSeq) return null;
       var t = normalizar(d);
       atualResp = d;
+      if (window.gipeEst) gipeEst.obter(d);
       if (!t || (!t.placa && t.id === null)){ aviso(nao); mostrar(null); return null; }
       aviso('');
       if (!criterio.placa) $('sdPlaca').value = t.placa;
