@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14181F">
+<meta name="robots" content="noindex">
+<title>Recibo de Estacionamento</title>
+<link rel="icon" type="image/png" href="../app/icons/favicon-48.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap">
+<!-- Gera o PDF do recibo -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --ink:#14181F; --muted:#4A5260; --line:#DADDE2; --soft:#F4F5F2;
+    --green:#1E6B3A; --green2:#2FB566; --yellow:#F2B705;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  html,body{margin:0;background:var(--soft);color:var(--ink);font-family:'Archivo',system-ui,sans-serif;-webkit-text-size-adjust:100%}
+  .app{max-width:480px;margin:0 auto;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;background:var(--soft)}
+  .top{background:var(--ink);color:#fff;padding:calc(22px + env(safe-area-inset-top)) 18px 56px;display:flex;flex-direction:column;gap:4px}
+  .kick{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--yellow)}
+  .tit{font-size:22px;font-weight:700}
+  .sub{font-size:13px;color:#B9C0CC;line-height:1.4}
+  .card{margin:-40px 16px 0;background:#fff;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:16px;border:1px solid var(--line);border-top:6px solid var(--green2)}
+  .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .status{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--green)}
+  .status i{width:22px;height:22px;border-radius:11px;background:var(--green2);color:#fff;display:flex;align-items:center;justify-content:center}
+  .tk{font-size:13px;color:var(--muted)}
+  .k{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .total{background:var(--soft);border-radius:14px;padding:14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .total div{display:flex;flex-direction:column;gap:2px}
+  .total b{font-family:'Barlow Condensed',sans-serif;font-size:clamp(32px,10vw,44px);font-weight:700;line-height:1;white-space:nowrap}
+  .total small{font-size:13px;color:var(--muted)}
+  .placa{flex-shrink:0;font-family:'Barlow Condensed',sans-serif;font-size:clamp(18px,5.6vw,26px);font-weight:700;letter-spacing:.06em;border:2px solid var(--ink);border-radius:6px;padding:0 8px;white-space:nowrap}
+  .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 10px}
+  .grid div{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .grid b{font-size:15px;font-weight:600;overflow-wrap:anywhere}
+  .acts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 16px 0}
+  .act{height:54px;border-radius:12px;background:#fff;border:1px solid var(--line);color:var(--ink);text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:600;font-family:inherit;padding:0 8px;cursor:pointer;text-align:center;line-height:1.2}
+  .act.wpp{background:#25D366;border-color:#25D366;color:#0B3D20}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,140px);background:var(--ink);color:#fff;font-weight:600;font-size:14px;padding:12px 16px;border-radius:12px;transition:transform .25s;z-index:20;max-width:calc(100% - 32px);text-align:center}
+  .toast.show{transform:translate(-50%,0)}
+  .rod{margin-top:auto;padding:20px 16px calc(18px + env(safe-area-inset-bottom));text-align:center;font-size:12px;color:var(--muted)}
+  .msg{margin:-40px 16px 0;background:#fff;border-radius:18px;padding:28px 20px;border:1px solid var(--line);text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center;font-size:15px;line-height:1.45;color:var(--muted)}
+  .msg b{color:var(--ink);font-size:18px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <span class="kick">Recibo de estacionamento</span>
+    <span class="tit" id="estNome">Estacionamento</span>
+    <span class="sub" id="estEnd"></span>
+    <span class="sub" id="estCnpj"></span>
+  </div>
+
+  <div class="msg" id="msg">
+    <b id="msgTit">Carregando recibo…</b>
+    <span id="msgTxt">Aguarde um instante.</span>
+  </div>
+
+  <div id="conteudo" hidden>
+    <div class="card">
+      <div class="row">
+        <span class="status"><i><svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></i>Saída confirmada</span>
+        <span class="tk">Ticket Nº <span id="ticket">—</span></span>
+      </div>
+      <div class="total">
+        <div><span class="k">Total pago</span><b id="valor">—</b><small id="pagto"></small></div>
+        <span class="placa" id="placa">—</span>
+      </div>
+      <div class="grid">
+        <div><span class="k">Entrada</span><b id="entrada">—</b></div>
+        <div><span class="k">Saída</span><b id="saida">—</b></div>
+        <div><span class="k">Permanência</span><b id="perm">—</b></div>
+        <div><span class="k">Categoria</span><b id="categoria">—</b></div>
+        <div style="grid-column:span 2"><span class="k">Veículo</span><b id="veiculo">—</b></div>
+      </div>
+    </div>
+    <div class="acts">
+      <button class="act" id="btnPdf" type="button"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Baixar recibo</button>
+      <a class="act wpp" id="btnWpp" href="#" target="_blank" rel="noopener"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .1-1.3c0-.1-.2-.2-.4-.3z"/></svg>Contato estacionamento</a>
+    </div>
+  </div>
+
+  <div class="rod">Obrigado pela preferência!</div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+  var API = 'https://api.gipepark.com.br/api/v1/patio/recibo/cliente?token=';
+  // WhatsApp do estacionamento (por enquanto fixo; formato internacional, só números)
+  var WHATSAPP_ESTACIONAMENTO = '5511979742680';
+  var CATEGORIAS = { 1:'Moto', 2:'Carro pequeno', 3:'Carro médio', 4:'Carro grande', 5:'Caminhonete', 6:'Caminhão' };
+  var FORMAS = { 1:'Dinheiro', 2:'PIX', 3:'Cartão de débito', 4:'Cartão de crédito' };
+
+  var $ = function(id){ return document.getElementById(id); };
+  var token = (new URLSearchParams(location.search).get('t') || '').trim();
+  var dados = null;
+
+  function pad(n){ return String(n).padStart(2, '0'); }
+  function brl(v){ return Number(v).toLocaleString('pt-BR', { style:'currency', currency:'BRL' }); }
+  function dataHora(ms){ var d = new Date(ms); return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear() + ' · ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+
+  /* ---------- Leitura flexível da resposta ---------- */
+  function campo(obj, nomes){
+    if (!obj || typeof obj !== 'object') return undefined;
+    var fontes = [obj, obj.dados, obj.data, obj.result, obj.resultado, obj.value, obj.veiculo, obj.ticket, obj.recibo];
+    for (var f = 0; f < fontes.length; f++){
+      var o = fontes[f]; if (!o || typeof o !== 'object' || Array.isArray(o)) continue;
+      var ch = Object.keys(o);
+      for (var n = 0; n < nomes.length; n++) for (var k = 0; k < ch.length; k++)
+        if (ch[k].toLowerCase() === nomes[n].toLowerCase() && o[ch[k]] !== null && o[ch[k]] !== '') return o[ch[k]];
+    }
+    return undefined;
+  }
+  function texto(v, nomes){
+    if (v === undefined || v === null) return '';
+    if (typeof v === 'object') v = campo(v, nomes || ['nome','descricao','valor']);
+    return v === undefined || v === null ? '' : String(v);
+  }
+  function data(v){ if (!v) return null; if (typeof v === 'number') return v < 1e12 ? v * 1000 : v; var t = Date.parse(String(v)); return isNaN(t) ? null : t; }
+  function numero(v){
+    if (v === undefined || v === null || v === '' || typeof v === 'object') return null;
+    if (typeof v === 'number') return v;
+    var s = String(v).replace(/[^\d,.-]/g, ''); if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+    var n = parseFloat(s); return isNaN(n) ? null : n;
+  }
+  function categoria(v){
+    if (v === undefined || v === null) return '';
+    if (typeof v === 'object'){ var d = texto(v, ['descricao','nome']); if (d) return d; v = campo(v, ['id','codigo']); }
+    return CATEGORIAS[Number(v)] || String(v);
+  }
+  function forma(v){
+    if (v === undefined || v === null) return '';
+    if (typeof v === 'object'){ var d = texto(v, ['descricao','nome']); if (d) return d; v = campo(v, ['id','codigo']); }
+    return FORMAS[Number(v)] || String(v);
+  }
+  function mascaraCnpj(v){
+    var d = String(v || '').replace(/\D/g, '');
+    return d.length === 14 ? d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') : String(v || '');
+  }
+  function endereco(v){
+    if (!v) return '';
+    if (typeof v === 'string') return v;
+    var rua = [texto(campo(v, ['logradouro','rua','endereco'])), texto(campo(v, ['numero']))].filter(Boolean).join(', ');
+    var cid = [texto(campo(v, ['bairro'])), [texto(campo(v, ['cidade','municipio'])), texto(campo(v, ['uf','estado']))].filter(Boolean).join('/')].filter(Boolean).join(' · ');
+    return [rua, cid].filter(Boolean).join(' · ');
+  }
+  function normalizar(r){
+    if (Array.isArray(r)) r = r[0];
+    if (r && Array.isArray(r.dados)) r = r.dados[0];
+    if (r && Array.isArray(r.data)) r = r.data[0];
+    if (!r || typeof r !== 'object') return null;
+    var placa = texto(campo(r, ['placa','placaVeiculo'])).toUpperCase().replace(/[^A-Z0-9]/g, '');
+    var est = campo(r, ['estacionamento','empresa','unidade']);
+    var entrada = data(campo(r, ['dataEntrada','dataHoraEntrada','entrada','horaEntrada','entradaEm']));
+    var saida = data(campo(r, ['dataSaida','dataHoraSaida','saida','saidaEm']));
+    return {
+      placa: /^[A-Z]{3}[0-9]{4}$/.test(placa) ? placa.slice(0,3) + '-' + placa.slice(3) : placa,
+      ticket: texto(campo(r, ['sequencial','codigoTicket','numeroTicket','ticket','numero'])),
+      veiculo: [texto(campo(r, ['modelo','modeloVeiculo'])), texto(campo(r, ['cor','corVeiculo']))].filter(Boolean).join(' · ').toUpperCase(),
+      categoria: categoria(campo(r, ['categoria','categoriaId','tipoVeiculo','categoriaVeiculo'])),
+      entrada: entrada, saida: saida,
+      permApi: texto(campo(r, ['permanencia','tempoPermanencia','tempo','duracao'])),
+      valor: numero(campo(r, ['valorPago','valor','valorTotal','total','valorCobrado'])),
+      forma: forma(campo(r, ['formaPagamento','formaPagamentoDescricao','pagamento','meioPagamento'])),
+      estNome: texto(est, ['nomeFantasia','nome','razaoSocial']) || texto(campo(r, ['nomeEstacionamento','nomeEmpresa','nomeFantasia'])),
+      estEnd: endereco(est && typeof est === 'object' ? campo(est, ['endereco','enderecoCompleto','logradouro']) : null) || texto(campo(r, ['enderecoEstacionamento','enderecoEmpresa'])),
+      estCnpj: mascaraCnpj(texto(est && typeof est === 'object' ? campo(est, ['cnpj','documento']) : null) || texto(campo(r, ['cnpj','cnpjEstacionamento','cnpjEmpresa'])))
+    };
+  }
+  function permanencia(d){
+    if (d.entrada && d.saida){
+      var min = Math.max(0, Math.floor((d.saida - d.entrada) / 60000));
+      return Math.floor(min / 60) + 'h ' + pad(min % 60) + 'min';
+    }
+    return d.permApi || '—';
+  }
+
+  /* ---------- Tela ---------- */
+  function mensagem(tit, txt){
+    $('msgTit').textContent = tit; $('msgTxt').textContent = txt || '';
+    $('msg').hidden = false; $('conteudo').hidden = true;
+  }
+  function render(){
+    var d = dados;
+    $('msg').hidden = true; $('conteudo').hidden = false;
+    if (d.estNome) $('estNome').textContent = d.estNome;
+    $('estEnd').textContent = d.estEnd || '';
+    $('estCnpj').textContent = d.estCnpj ? 'CNPJ ' + d.estCnpj : '';
+    $('ticket').textContent = d.ticket || '—';
+    $('valor').textContent = d.valor === null ? '—' : brl(d.valor);
+    $('pagto').textContent = d.forma ? 'Pago em ' + d.forma.toLowerCase() : '';
+    $('placa').textContent = d.placa || '—';
+    $('entrada').textContent = d.entrada ? dataHora(d.entrada) : '—';
+    $('saida').textContent = d.saida ? dataHora(d.saida) : '—';
+    $('perm').textContent = permanencia(d);
+    $('categoria').textContent = d.categoria || '—';
+    $('veiculo').textContent = d.veiculo || '—';
+    var msg = 'Olá! Tenho uma dúvida sobre o recibo do estacionamento'
+      + (d.placa ? ' — placa ' + d.placa : '') + (d.ticket ? ', ticket nº ' + d.ticket : '') + '.';
+    $('btnWpp').href = 'https://wa.me/' + WHATSAPP_ESTACIONAMENTO + '?text=' + encodeURIComponent(msg);
+  }
+
+  /* ---------- PDF ---------- */
+  function toast(t){ var el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(function(){ el.classList.remove('show'); }, 3200); }
+  function gerarPdf(){
+    var J = window.jspdf && window.jspdf.jsPDF;
+    if (!J || !dados) return null;
+    var d = dados, W = 80, y;
+    var doc = new J({ unit:'mm', format:[W, 150] });
+    doc.setFillColor(20, 24, 31); doc.rect(0, 0, W, 30, 'F');
+    doc.setTextColor(242, 183, 5); doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
+    doc.text('RECIBO DE ESTACIONAMENTO', 6, 9);
+    doc.setTextColor(255, 255, 255); doc.setFontSize(12);
+    doc.text(d.estNome || 'Estacionamento', 6, 16, { maxWidth: W - 12 });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
+    if (d.estEnd) doc.text(d.estEnd, 6, 21.5, { maxWidth: W - 12 });
+    if (d.estCnpj) doc.text('CNPJ ' + d.estCnpj, 6, 26.5);
+    y = 38;
+    doc.setTextColor(30, 107, 58); doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
+    doc.text('SAÍDA CONFIRMADA', 6, y);
+    doc.setTextColor(74, 82, 96); doc.setFont('helvetica', 'normal');
+    doc.text('Ticket Nº ' + (d.ticket || '—'), W - 6, y, { align:'right' });
+    y += 6;
+    doc.setFillColor(244, 245, 242); doc.roundedRect(6, y, W - 12, 20, 3, 3, 'F');
+    doc.setFontSize(7); doc.text('TOTAL PAGO', 10, y + 6);
+    doc.setTextColor(20, 24, 31); doc.setFont('helvetica', 'bold'); doc.setFontSize(18);
+    doc.text(d.valor === null ? '—' : brl(d.valor), 10, y + 14.5);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(74, 82, 96);
+    if (d.forma) doc.text('Pago em ' + d.forma.toLowerCase(), W - 10, y + 14.5, { align:'right' });
+    y += 28;
+    function linha(rot, val){
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(74, 82, 96); doc.text(rot.toUpperCase(), 6, y);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10.5); doc.setTextColor(20, 24, 31); doc.text(String(val || '—'), 6, y + 5, { maxWidth: W - 12 });
+      y += 11;
+    }
+    linha('Placa', d.placa);
+    linha('Entrada', d.entrada ? dataHora(d.entrada) : '—');
+    linha('Saída', d.saida ? dataHora(d.saida) : '—');
+    linha('Permanência', permanencia(d));
+    linha('Veículo', [d.veiculo, d.categoria].filter(Boolean).join(' · '));
+    doc.setFontSize(6.5); doc.setTextColor(120, 127, 138); doc.setFont('helvetica', 'normal');
+    doc.text('Recibo emitido em ' + dataHora(Date.now()) + ' · obrigado pela preferência!', W / 2, 145, { align:'center' });
+    return doc;
+  }
+  $('btnPdf').addEventListener('click', function(){
+    if (!dados) return;
+    var doc = gerarPdf();
+    if (!doc){ toast('Sem internet para gerar o PDF. Tente novamente.'); return; }
+    doc.save('recibo-' + (dados.placa || 'veiculo').replace(/[^A-Z0-9]/gi, '') + (dados.ticket ? '-' + dados.ticket : '') + '.pdf');
+    toast('Recibo salvo em PDF');
+  });
+
+  /* ---------- Consulta ---------- */
+  function consultar(){
+    fetch(API + encodeURIComponent(token), { headers: { 'Accept': 'application/json' }, cache: 'no-store' })
+      .then(function(r){
+        return r.text().then(function(txt){
+          var j = null; try { j = txt ? JSON.parse(txt) : null; } catch(e){ j = null; }
+          if (r.status === 404 || r.status === 400){ var e1 = new Error('nao'); e1.naoEncontrado = true; throw e1; }
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          var n = normalizar(j);
+          if (!n){ var e2 = new Error('nao'); e2.naoEncontrado = true; throw e2; }
+          return n;
+        });
+      })
+      .then(function(n){ dados = n; render(); })
+      .catch(function(e){
+        if (e.naoEncontrado) mensagem('Recibo não encontrado', 'Confira o QR Code com o atendente do estacionamento.');
+        else {
+          mensagem('Não foi possível carregar', 'Verifique sua internet. Tentaremos de novo em instantes.');
+          setTimeout(consultar, 20000);
+        }
+      });
+  }
+
+  if (!/^[A-Za-z0-9]{4,32}$/.test(token)){
+    mensagem('Link inválido', 'Escaneie novamente o QR Code do recibo.');
+    return;
+  }
+  consultar();
+})();
+</script>
+</body>
+</html>

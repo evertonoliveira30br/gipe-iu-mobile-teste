@@ -706,11 +706,21 @@
         .sd-rec-num b{font-family:'Barlow Condensed',sans-serif;font-size:24px;line-height:1}
         .sd-rec-total{margin:0 18px;background:#F4F5F2;border-radius:14px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
         .sd-rec-total div{display:flex;flex-direction:column;gap:2px}
-        .sd-rec-total b{font-family:'Barlow Condensed',sans-serif;font-size:40px;line-height:1}
-        .sd-rec-total .sd-rec-placa{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700;letter-spacing:.06em;text-transform:none;color:#14181F;border:2px solid #14181F;border-radius:6px;padding:0 8px;white-space:nowrap}
+        .sd-rec-total b{font-family:'Barlow Condensed',sans-serif;font-size:clamp(30px,9vw,40px);line-height:1;white-space:nowrap}
+        .sd-rec-total .sd-rec-placa{font-family:'Barlow Condensed',sans-serif;font-size:clamp(18px,5.6vw,26px);flex-shrink:0;font-weight:700;letter-spacing:.06em;text-transform:none;color:#14181F;border:2px solid #14181F;border-radius:6px;padding:0 8px;white-space:nowrap}
         .sd-rec-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px;padding:14px 18px 18px}
         .sd-rec-grid div{display:flex;flex-direction:column;gap:2px}
         .sd-rec-grid b{font-size:15px}
+        .sd-rec-perf{display:flex;align-items:center;height:22px}
+        .sd-rec-perf i{width:11px;height:22px;background:var(--s-bg);display:block}
+        .sd-rec-perf i:first-child{border-radius:0 11px 11px 0}
+        .sd-rec-perf i:last-child{border-radius:11px 0 0 11px}
+        .sd-rec-perf span{flex:1;border-top:2px dashed #C9CDD4;margin:0 6px}
+        .sd-rec-qr{display:flex;flex-direction:column;align-items:center;gap:6px;padding:6px 18px 18px;text-align:center}
+        .sd-qrbox{width:156px;height:156px;display:flex;align-items:center;justify-content:center;color:#14181F;font-size:12px}
+        .sd-qrbox svg{width:100%;height:100%;display:block}
+        .sd-rec-qr b{font-size:15px}
+        .sd-rec-qr span{font-size:12.5px;color:#4A5260}
       </style>
 
       <div class="phone sd" id="sdView">
@@ -763,7 +773,7 @@
         </div>
         <div class="sd-rec-card">
           <div class="sd-rec-top">
-            <div><b class="sd-est-nome" id="sdEstNome"></b><span class="sd-est-end" id="sdEstEnd"></span></div>
+            <div><b class="sd-est-nome" id="sdEstNome">Estacionamento</b><span class="sd-est-end" id="sdEstEnd"></span><span class="sd-est-end" id="sdEstCnpj"></span></div>
             <div class="sd-rec-num"><span>Ticket</span><b id="sdRNum">Nº —</b></div>
           </div>
           <div class="sd-rec-total">
@@ -775,6 +785,14 @@
             <div><span>Saída</span><b id="sdRSai">—</b></div>
             <div><span>Permanência</span><b id="sdRPerm">—</b></div>
             <div><span>Veículo</span><b id="sdRVeic">—</b></div>
+          </div>
+          <div id="sdRQrSec" hidden>
+            <div class="sd-rec-perf"><i></i><span></span><i></i></div>
+            <div class="sd-rec-qr">
+              <div class="sd-qrbox" id="sdRQR" role="img" aria-label="QR Code do recibo do cliente"></div>
+              <b>Recibo no celular do cliente</b>
+              <span>Aponte a câmera para ver e baixar o recibo</span>
+            </div>
           </div>
         </div>
         <div class="sd-spacer"></div>
@@ -2261,8 +2279,9 @@
   };
   var TOLERANCIA_MIN = 10;
 
-  // Dados do estacionamento (aparecem no recibo)
-  var ESTAC = { nome:'[NOME DO ESTACIONAMENTO]', endereco:'[ENDEREÇO]', cnpj:'[00.000.000/0001-00]' };
+  // Recibo do cliente: página r/ ao lado da pasta app/ (o QR leva o token devolvido pela saída)
+  var URL_RECIBO = (/^https?:$/.test(location.protocol) ? new URL('../r/', location.href).href : 'https://evertonoliveira30br.github.io/gipe-iu-mobile-teste/r/') + '?t=';
+  var atualResp = null;   // resposta bruta da consulta (para nome/endereço/CNPJ do estacionamento)
 
   var $ = function(id){ return document.getElementById(id); };
   var video = $('sdVideo'), scan = $('sdScan');
@@ -2336,6 +2355,40 @@
     };
   }
 
+  /* ---------- Dados do estacionamento (nome, endereço, CNPJ) ---------- */
+  function mascaraCnpj(v){
+    var d = String(v || '').replace(/\D/g, '');
+    return d.length === 14 ? d.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5') : String(v || '');
+  }
+  function endereco(v){
+    if (!v) return '';
+    if (typeof v === 'string') return v;
+    var rua = [txt(c(v, ['logradouro','rua','endereco'])), txt(c(v, ['numero']))].filter(Boolean).join(', ');
+    var cid = [txt(c(v, ['bairro'])), [txt(c(v, ['cidade','municipio'])), txt(c(v, ['uf','estado']))].filter(Boolean).join('/')].filter(Boolean).join(' · ');
+    return [rua, cid].filter(Boolean).join(' · ');
+  }
+  function estacionamentoDe(resp){
+    var it = desembrulhar(resp) || resp;
+    if (!it || typeof it !== 'object') return null;
+    var est = c(it, ['estacionamento','empresa','unidade']);
+    var e = (est && typeof est === 'object') ? est : null;
+    var r = {
+      nome: (e ? txt(c(e, ['nomeFantasia','nome','razaoSocial'])) : '') || txt(c(it, ['nomeEstacionamento','nomeEmpresa','nomeFantasia'])),
+      endereco: (e ? endereco(c(e, ['endereco','enderecoCompleto','logradouro'])) : '') || txt(c(it, ['enderecoEstacionamento','enderecoEmpresa'])),
+      cnpj: mascaraCnpj((e ? txt(c(e, ['cnpj','documento'])) : '') || txt(c(it, ['cnpj','cnpjEstacionamento','cnpjEmpresa'])))
+    };
+    return (r.nome || r.endereco || r.cnpj) ? r : null;
+  }
+  function estacionamentoGuardado(){ try { return JSON.parse(localStorage.getItem('gipe-estacionamento') || 'null'); } catch(e){ return null; } }
+  function mostrarEstacionamento(respSaida){
+    var e = estacionamentoDe(respSaida) || estacionamentoDe(atualResp) || estacionamentoGuardado();
+    if (e && (estacionamentoDe(respSaida) || estacionamentoDe(atualResp))){ try { localStorage.setItem('gipe-estacionamento', JSON.stringify(e)); } catch(x){} }
+    if (!e) console.warn('[GIPE] a API não informou nome/endereço/CNPJ do estacionamento', respSaida, atualResp);
+    $('sdEstNome').textContent = (e && e.nome) || 'Estacionamento';
+    $('sdEstEnd').textContent = (e && e.endereco) || '';
+    $('sdEstCnpj').textContent = (e && e.cnpj) ? 'CNPJ ' + e.cnpj : '';
+  }
+
   function calcular(t){
     var min = t.entrada ? Math.max(0, Math.floor((Date.now() - t.entrada) / 60000)) : null;
     var perm = min !== null ? Math.floor(min/60) + 'h ' + pad(min % 60) + 'min' : (t.permApi || '—');
@@ -2392,6 +2445,7 @@
     return gipeApi.get('/patio/saida?' + qs).then(function(d){
       if (seq !== buscaSeq) return null;
       var t = normalizar(d);
+      atualResp = d;
       if (!t || (!t.placa && t.id === null)){ aviso(nao); mostrar(null); return null; }
       aviso('');
       if (!criterio.placa) $('sdPlaca').value = t.placa;
@@ -2527,7 +2581,7 @@
     var forma = cc.valor > 0 ? FORMAS[pagamento] : (pagamento ? FORMAS[pagamento] : null);
     btn.disabled = true; btn.textContent = 'Registrando saída…';
     gipeApi.post('/patio/' + encodeURIComponent(t.id) + '/saida', { valor: cc.valor, formaPagamento: forma })
-      .then(function(){
+      .then(function(resp){
         var saida = Date.now();
         parar(); clearInterval(timer);
         $('sdRPagto').textContent = cc.valor > 0 ? 'Pagamento recebido · ' + pagamento : 'Sem cobrança';
@@ -2538,6 +2592,16 @@
         $('sdRSai').textContent = curto(saida);
         $('sdRPerm').textContent = cc.perm;
         $('sdRVeic').textContent = t.veiculo || '—';
+        mostrarEstacionamento(resp);
+        // QR do recibo do cliente com o token devolvido pela saída
+        var tk = c(desembrulhar(resp) || resp || {}, ['token','tokenRecibo','tokenSaida','codigoRecibo']);
+        if (tk !== undefined && typeof tk === 'object') tk = undefined;
+        $('sdRQrSec').hidden = !tk;
+        if (tk){
+          var el = $('sdRQR'), link = URL_RECIBO + encodeURIComponent(String(tk));
+          if (typeof qrcode === 'function'){ var q = qrcode(0, 'M'); q.addData(link); q.make(); el.innerHTML = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); }
+          else el.textContent = 'Código ' + tk;
+        } else console.warn('[GIPE] patio/{id}/saida não devolveu "token" — sem QR do recibo', resp);
         $('sdView').hidden = true; $('sdRecibo').hidden = false;
         window.scrollTo(0, 0);
       })
@@ -2552,8 +2616,6 @@
     limpar(); window.scrollTo(0, 0);
   });
 
-  $('sdEstNome').textContent = ESTAC.nome;
-  $('sdEstEnd').textContent = ESTAC.endereco + ' · CNPJ ' + ESTAC.cnpj;
 
   /* ---------- Usado pelo menu ---------- */
   window.gipeSaida = {
