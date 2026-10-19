@@ -708,6 +708,7 @@
         .sd-rec-num b{font-family:'Barlow Condensed',sans-serif;font-size:24px;line-height:1}
         .sd-rec-total{margin:0 18px;background:#F4F5F2;border-radius:14px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
         .sd-rec-total div{display:flex;flex-direction:column;gap:2px}
+        .sd-rec-total small{font-size:13px;color:#4A5260}
         .sd-rec-total b{font-family:'Barlow Condensed',sans-serif;font-size:clamp(30px,9vw,40px);line-height:1;white-space:nowrap}
   /* placa com visual real (Mercosul ou modelo antigo) */
   .gp-placa{display:inline-flex;flex-direction:column;flex-shrink:0;width:clamp(112px,34vw,136px);border:2px solid #14181F;border-radius:7px;overflow:hidden;background:#fff;box-shadow:0 1px 2px rgba(20,24,31,.18);color:#14181F;text-transform:none;letter-spacing:0}
@@ -779,17 +780,13 @@
 
       <!-- Recibo da saída -->
       <div class="phone sd" id="sdRecibo" hidden>
-        <div class="sd-rec-head">
-          <span class="sd-rec-ok"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
-          <div><b>Saída confirmada</b><span id="sdRPagto">Pagamento recebido</span></div>
-        </div>
         <div class="sd-rec-card">
           <div class="sd-rec-top">
             <div><b class="sd-est-nome" id="sdEstNome">Estacionamento</b><span class="sd-est-end" id="sdEstEnd"></span><span class="sd-est-end" id="sdEstCnpj"></span></div>
             <div class="sd-rec-num"><span>Ticket</span><b id="sdRNum">Nº —</b></div>
           </div>
           <div class="sd-rec-total">
-            <div><span>Total pago</span><b id="sdRValor">R$ 0,00</b></div>
+            <div><span>Total pago</span><b id="sdRValor">R$ 0,00</b><small id="sdRPagto"></small></div>
             <div class="gp-placa merco" id="sdRPlaca"></div>
           </div>
           <div class="sd-rec-grid">
@@ -2680,7 +2677,7 @@
       .then(function(resp){
         var saida = Date.now();
         parar(); clearInterval(timer);
-        $('sdRPagto').textContent = cc.valor > 0 ? 'Pagamento recebido · ' + pagamento : 'Sem cobrança';
+        $('sdRPagto').textContent = cc.valor > 0 ? 'Pago em ' + ({ 'Dinheiro':'dinheiro', 'PIX':'PIX', 'Débito':'cartão de débito', 'Crédito':'cartão de crédito' }[pagamento] || pagamento) : 'Sem cobrança';
         $('sdRNum').textContent = 'Nº ' + (t.sequencial || '—');
         $('sdRValor').textContent = brl(cc.valor);
         desenharPlaca($('sdRPlaca'), t.placa, window.gipePlacaUf ? gipePlacaUf(t.placa) : null);
