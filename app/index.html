@@ -363,8 +363,8 @@
       <p>Entre para registrar entradas e saídas</p>
     </div>
     <form class="login-card" id="loginForm" novalidate>
-      <label class="lbl" for="loginUsuario">Login</label>
-      <input class="login-inp" id="loginUsuario" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+      <label class="lbl" for="loginUsuario">CPF</label>
+      <input class="login-inp" id="loginUsuario" name="username" autocomplete="username" inputmode="numeric" maxlength="14" placeholder="000.000.000-00" spellcheck="false" required>
       <label class="lbl" for="loginSenha">Senha</label>
       <div class="login-senha">
         <input class="login-inp" id="loginSenha" name="password" type="password" autocomplete="current-password" required>
@@ -435,7 +435,8 @@
     document.body.classList.add('deslogado');
     var e = $('loginErro'); e.textContent = msg || ''; e.className = 'login-erro' + (tipo === 'info' ? ' info' : '');
     $('loginSenha').value = '';
-    $('loginUsuario').value = ler(CHAVE_LOGIN) || $('loginUsuario').value;
+    var ult = ler(CHAVE_LOGIN);
+    $('loginUsuario').value = ult ? mascaraCpf(ult) : $('loginUsuario').value;
     window.scrollTo(0, 0);
   }
   function mostrarApp(){
@@ -467,6 +468,15 @@
   }
 
   /* ---------- Formulário ---------- */
+  function mascaraCpf(v){
+    var d = String(v || '').replace(/\D/g, '').slice(0, 11);
+    return d.replace(/^(\d{3})(\d)/, '$1.$2').replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d)/, '.$1-$2');
+  }
+  $('loginUsuario').addEventListener('input', function(e){
+    e.target.value = mascaraCpf(e.target.value);
+    if ($('loginErro').className === 'login-erro') $('loginErro').textContent = '';
+  });
+
   $('loginVer').addEventListener('click', function(){
     var s = $('loginSenha'), mostrar = s.type === 'password';
     s.type = mostrar ? 'text' : 'password';
@@ -476,9 +486,9 @@
 
   $('loginForm').addEventListener('submit', function(ev){
     ev.preventDefault();
-    var login = $('loginUsuario').value.trim(), senha = $('loginSenha').value;
+    var login = $('loginUsuario').value.replace(/\D/g, ''), senha = $('loginSenha').value;   // CPF vai só com números
     var erro = $('loginErro'), btn = $('loginBtn');
-    if (!login || !senha){ erro.className = 'login-erro'; erro.textContent = 'Informe o login e a senha.'; return; }
+    if (login.length !== 11 || !senha){ erro.className = 'login-erro'; erro.textContent = login.length !== 11 ? 'Informe o CPF completo (11 dígitos).' : 'Informe a senha.'; return; }
     erro.textContent = ''; btn.disabled = true; btn.textContent = 'Entrando…';
     fetch(URL_LOGIN, {
       method: 'POST',
