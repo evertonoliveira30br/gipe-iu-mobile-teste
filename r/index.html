@@ -41,7 +41,15 @@
   .acts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 16px 0}
   .act{height:54px;border-radius:12px;background:#fff;border:1px solid var(--line);color:var(--ink);text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:600;font-family:inherit;padding:0 8px;cursor:pointer;text-align:center;line-height:1.2}
   .act.nf{background:var(--yellow);border-color:var(--yellow);color:var(--ink)}
-  .act.nf.ok{background:#fff;border-color:var(--green2);color:var(--green)}
+  .act:disabled{opacity:.45;cursor:default}
+  .seg{display:grid;grid-template-columns:1fr 1fr;background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px}
+  .seg button{height:42px;border:0;border-radius:9px;background:transparent;font-family:inherit;font-size:14px;font-weight:600;color:var(--muted);cursor:pointer}
+  .seg button[aria-checked="true"]{background:var(--ink);color:#fff}
+  .fld label small{text-transform:none;letter-spacing:0;font-weight:500}
+  .nf-ok{margin:12px 16px 0;background:#E8F6EE;border:1px solid #BFE6CF;border-radius:14px;padding:14px;display:flex;gap:12px;align-items:flex-start;color:var(--green)}
+  .nf-ok i{flex-shrink:0;width:24px;height:24px;border-radius:12px;background:var(--green2);color:#fff;display:flex;align-items:center;justify-content:center}
+  .nf-ok div{display:flex;flex-direction:column;gap:3px}
+  .nf-ok b{font-size:15px} .nf-ok span{font-size:13.5px;line-height:1.4;color:#24543A}
   .sheet-bg{position:fixed;inset:0;background:rgba(20,24,31,.55);z-index:30;display:flex;align-items:flex-end;justify-content:center}
   .sheet{width:100%;max-width:480px;background:#fff;border-radius:20px 20px 0 0;padding:20px 18px calc(18px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:14px;animation:sobe .22s ease-out}
   @keyframes sobe{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
@@ -100,6 +108,10 @@
       <button class="act" id="btnPdf" type="button"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Baixar recibo</button>
       <button class="act nf" id="btnNf" type="button"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></svg><span id="btnNfTxt">Solicitar nota fiscal</span></button>
     </div>
+    <div class="nf-ok" id="nfOk" role="status" hidden>
+      <i><svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></i>
+      <div><b>Nota Fiscal solicitada com sucesso</b><span>Em até 2 dias você receberá a mesma no e-mail informado<span id="nfOkEmail"></span>.</span></div>
+    </div>
   </div>
 
   <div class="rod">Obrigado pela preferência!</div>
@@ -109,10 +121,14 @@
 <div class="sheet-bg" id="nfBg" hidden>
   <form class="sheet" id="nfForm" role="dialog" aria-modal="true" aria-labelledby="nfTit" novalidate>
     <h2 id="nfTit">Solicitar nota fiscal</h2>
-    <p>Informe o CPF ou CNPJ que deve constar na nota e o e-mail para recebê-la.</p>
+    <p>Informe os dados que devem constar na nota e o e-mail para recebê-la.</p>
+    <div class="seg" role="radiogroup" aria-label="Tipo de pessoa">
+      <button type="button" role="radio" data-tipo="PF" aria-checked="true">Pessoa Física</button>
+      <button type="button" role="radio" data-tipo="PJ" aria-checked="false">Pessoa Jurídica</button>
+    </div>
     <div class="fld">
-      <label for="nfDoc">CPF ou CNPJ</label>
-      <input id="nfDoc" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" maxlength="18">
+      <label for="nfDoc" id="nfDocLbl">CPF <small>(opcional)</small></label>
+      <input id="nfDoc" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" maxlength="14">
     </div>
     <div class="fld">
       <label for="nfEmail">E-mail</label>
@@ -241,7 +257,7 @@
     $('perm').textContent = permanencia(d);
     $('categoria').textContent = d.categoria || '—';
     $('veiculo').textContent = d.veiculo || '—';
-    marcarNf(nfJaPedida());
+    marcarNf(nfPedida());
   }
 
   /* ---------- PDF ---------- */
@@ -295,17 +311,18 @@
   });
 
   /* ---------- Nota fiscal ---------- */
-  var CHAVE_NF = 'gipe-nf-' + token;
-  function nfJaPedida(){ try { return localStorage.getItem(CHAVE_NF) === '1'; } catch(e){ return false; } }
-  function marcarNf(ok){
-    $('btnNf').classList.toggle('ok', !!ok);
-    $('btnNfTxt').textContent = ok ? 'Nota fiscal solicitada' : 'Solicitar nota fiscal';
+  var CHAVE_NF = 'gipe-nf-' + token, tipoPessoa = 'PF';
+  function nfPedida(){ try { var v = localStorage.getItem(CHAVE_NF); return v ? JSON.parse(v) : null; } catch(e){ return null; } }
+  // depois de solicitada: mostra o aviso e desabilita os dois botões
+  function marcarNf(info){
+    $('nfOk').hidden = !info;
+    $('nfOkEmail').textContent = info && info.email ? ' (' + info.email + ')' : '';
+    $('btnNf').disabled = !!info; $('btnPdf').disabled = !!info;
+    $('btnNfTxt').textContent = info ? 'Nota fiscal solicitada' : 'Solicitar nota fiscal';
   }
-  function mascaraDoc(v){
-    var d = v.replace(/\D/g, '').slice(0, 14);
-    if (d.length <= 11) return d.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d{1,2})$/, '.$1-$2');
-    return d.replace(/^(\d{2})(\d)/, '$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d)/, '.$1/$2').replace(/(\d{4})(\d{1,2})$/, '$1-$2');
-  }
+  function mascaraCpf(d){ return d.slice(0, 11).replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d{1,2})$/, '.$1-$2'); }
+  function mascaraCnpjDig(d){ return d.slice(0, 14).replace(/^(\d{2})(\d)/, '$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d)/, '.$1/$2').replace(/(\d{4})(\d{1,2})$/, '$1-$2'); }
+  function mascaraDoc(v){ var d = v.replace(/\D/g, ''); return tipoPessoa === 'PJ' ? mascaraCnpjDig(d) : mascaraCpf(d); }
   function cpfValido(c){
     if (!/^\d{11}$/.test(c) || /^(\d)\1+$/.test(c)) return false;
     for (var t = 9; t < 11; t++){ var s = 0; for (var i = 0; i < t; i++) s += c[i] * (t + 1 - i); if (((s * 10) % 11) % 10 != c[t]) return false; }
@@ -316,41 +333,46 @@
     var dv = function(n){ var s = 0, p = n - 7; for (var i = 0; i < n; i++){ s += c[i] * p--; if (p < 2) p = 9; } var r = s % 11; return r < 2 ? 0 : 11 - r; };
     return dv(12) == c[12] && dv(13) == c[13];
   }
-  function abrirNf(){
-    $('nfErr').textContent = '';
-    $('nfDoc').removeAttribute('aria-invalid'); $('nfEmail').removeAttribute('aria-invalid');
-    $('nfBg').hidden = false;
-    setTimeout(function(){ $('nfDoc').focus(); }, 50);
+  function limparErro(){ $('nfErr').textContent = ''; $('nfDoc').removeAttribute('aria-invalid'); $('nfEmail').removeAttribute('aria-invalid'); }
+  function selTipo(tp){
+    tipoPessoa = tp;
+    document.querySelectorAll('.seg button').forEach(function(b){ b.setAttribute('aria-checked', b.dataset.tipo === tp); });
+    var pj = tp === 'PJ';
+    $('nfDocLbl').innerHTML = pj ? 'CNPJ' : 'CPF <small>(opcional)</small>';
+    $('nfDoc').placeholder = pj ? '00.000.000/0000-00' : '000.000.000-00';
+    $('nfDoc').maxLength = pj ? 18 : 14;
+    $('nfDoc').value = ''; limparErro();
   }
+  document.querySelectorAll('.seg button').forEach(function(b){ b.addEventListener('click', function(){ selTipo(b.dataset.tipo); $('nfDoc').focus(); }); });
+  function abrirNf(){ limparErro(); $('nfBg').hidden = false; setTimeout(function(){ $('nfDoc').focus(); }, 50); }
   function fecharNf(){ $('nfBg').hidden = true; }
-  $('btnNf').addEventListener('click', function(){
-    if (nfJaPedida() && !confirm('A nota fiscal deste recibo já foi solicitada. Deseja enviar outra solicitação?')) return;
-    abrirNf();
-  });
+  $('btnNf').addEventListener('click', function(){ if (!nfPedida()) abrirNf(); });
   $('nfCancelar').addEventListener('click', fecharNf);
   $('nfBg').addEventListener('click', function(e){ if (e.target === $('nfBg')) fecharNf(); });
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && !$('nfBg').hidden) fecharNf(); });
-  $('nfDoc').addEventListener('input', function(e){ e.target.value = mascaraDoc(e.target.value); e.target.removeAttribute('aria-invalid'); $('nfErr').textContent = ''; });
-  $('nfEmail').addEventListener('input', function(e){ e.target.removeAttribute('aria-invalid'); $('nfErr').textContent = ''; });
+  $('nfDoc').addEventListener('input', function(e){ e.target.value = mascaraDoc(e.target.value); limparErro(); });
+  $('nfEmail').addEventListener('input', limparErro);
 
   $('nfForm').addEventListener('submit', function(e){
     e.preventDefault();
+    var pj = tipoPessoa === 'PJ';
     var doc = $('nfDoc').value.replace(/\D/g, ''), email = $('nfEmail').value.trim();
-    var docOk = doc.length === 11 ? cpfValido(doc) : cnpjValido(doc);
-    var emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
-    $('nfDoc').setAttribute('aria-invalid', !docOk); $('nfEmail').setAttribute('aria-invalid', !emailOk);
-    if (!docOk){ $('nfErr').textContent = 'CPF ou CNPJ inválido.'; $('nfDoc').focus(); return; }
-    if (!emailOk){ $('nfErr').textContent = 'Informe um e-mail válido.'; $('nfEmail').focus(); return; }
-    $('nfErr').textContent = '';
+    var erroDoc = pj ? (!doc ? 'Informe o CNPJ.' : (!cnpjValido(doc) ? 'CNPJ inválido.' : ''))
+                     : (doc && !cpfValido(doc) ? 'CPF inválido.' : '');
+    if (erroDoc){ $('nfErr').textContent = erroDoc; $('nfDoc').setAttribute('aria-invalid', 'true'); $('nfDoc').focus(); return; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)){ $('nfErr').textContent = 'Informe um e-mail válido.'; $('nfEmail').setAttribute('aria-invalid', 'true'); $('nfEmail').focus(); return; }
+    limparErro();
     var concluir = function(){
-      try { localStorage.setItem(CHAVE_NF, '1'); } catch(er){}
-      marcarNf(true); fecharNf();
+      var info = { tipo: tipoPessoa, email: email, em: Date.now() };
+      try { localStorage.setItem(CHAVE_NF, JSON.stringify(info)); } catch(er){}
+      marcarNf(info); fecharNf();
+      $('nfOk').scrollIntoView({ behavior:'smooth', block:'center' });
     };
     if (API_NOTA_FISCAL){
       var b = $('nfEnviar'); b.disabled = true; b.textContent = 'Enviando…';
       fetch(API_NOTA_FISCAL, { method:'POST', headers:{ 'Content-Type':'application/json', 'Accept':'application/json' },
-        body: JSON.stringify({ token: token, documento: doc, email: email }) })
-        .then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); concluir(); toast('Solicitação enviada! A nota chegará no seu e-mail.'); })
+        body: JSON.stringify({ token: token, tipoPessoa: tipoPessoa, documento: doc || null, email: email }) })
+        .then(function(r){ if (!r.ok) throw new Error('HTTP ' + r.status); concluir(); })
         .catch(function(){ $('nfErr').textContent = 'Não foi possível enviar agora. Tente novamente.'; })
         .then(function(){ b.disabled = false; b.textContent = 'Enviar solicitação'; });
     } else {
@@ -358,8 +380,8 @@
       var msg = 'Olá! Gostaria de solicitar a nota fiscal do estacionamento.'
         + (d.ticket ? '\nTicket: ' + d.ticket : '') + (d.placa ? '\nPlaca: ' + d.placa : '')
         + (d.saida ? '\nSaída: ' + dataHora(d.saida) : '') + (d.valor !== null && d.valor !== undefined ? '\nValor: ' + brl(d.valor) : '')
-        + '\n' + (doc.length === 11 ? 'CPF: ' : 'CNPJ: ') + mascaraDoc(doc) + '\nE-mail: ' + email
-        + '\nRecibo: ' + location.href;
+        + '\n' + (pj ? 'Pessoa Jurídica · CNPJ: ' + mascaraCnpjDig(doc) : 'Pessoa Física' + (doc ? ' · CPF: ' + mascaraCpf(doc) : ''))
+        + '\nE-mail: ' + email + '\nRecibo: ' + location.href;
       window.open('https://wa.me/' + WHATSAPP_ESTACIONAMENTO + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
       concluir();
     }
