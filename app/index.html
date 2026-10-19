@@ -707,7 +707,17 @@
         .sd-rec-total{margin:0 18px;background:#F4F5F2;border-radius:14px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
         .sd-rec-total div{display:flex;flex-direction:column;gap:2px}
         .sd-rec-total b{font-family:'Barlow Condensed',sans-serif;font-size:clamp(30px,9vw,40px);line-height:1;white-space:nowrap}
-        .sd-rec-total .sd-rec-placa{font-family:'Barlow Condensed',sans-serif;font-size:clamp(18px,5.6vw,26px);flex-shrink:0;font-weight:700;letter-spacing:.06em;text-transform:none;color:#14181F;border:2px solid #14181F;border-radius:6px;padding:0 8px;white-space:nowrap}
+  /* placa com visual real (Mercosul ou modelo antigo) */
+  .gp-placa{display:inline-flex;flex-direction:column;flex-shrink:0;width:clamp(112px,34vw,136px);border:2px solid #14181F;border-radius:7px;overflow:hidden;background:#fff;box-shadow:0 1px 2px rgba(20,24,31,.18);color:#14181F;text-transform:none;letter-spacing:0}
+  .gp-placa .gp-bd{position:relative;height:16px;display:flex;align-items:center;justify-content:center;font:700 8.5px/1 system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:.2em;white-space:nowrap;overflow:hidden;padding:0 18px;text-transform:none}
+  .gp-placa .gp-bd span{font:inherit;color:inherit;text-transform:none}
+  .gp-placa .gp-nm{display:block;font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-weight:700;font-size:32px;line-height:1.08;letter-spacing:.05em;text-align:center;white-space:nowrap;overflow:hidden;padding:1px 4px 2px;color:#14181F;text-transform:none}
+  .gp-placa.merco .gp-bd{background:#0F3DA8;color:#fff}
+  .gp-placa.merco .gp-br{position:absolute;left:4px;top:50%;transform:translateY(-50%);font-size:6.5px;letter-spacing:.04em;opacity:.95}
+  .gp-placa.merco .gp-fl{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:13px;height:9px;display:block}
+  .gp-placa.antiga{background:linear-gradient(180deg,#DADDE0,#B8BCC1)}
+  .gp-placa.antiga .gp-bd{background:transparent;color:#14181F;border-bottom:1.5px solid #14181F;font-size:7.5px;letter-spacing:.06em;padding:0 6px;text-overflow:ellipsis}
+  .gp-placa.antiga .gp-nm{line-height:1.12}
         .sd-rec-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px;padding:14px 18px 18px}
         .sd-rec-grid div{display:flex;flex-direction:column;gap:2px}
         .sd-rec-grid b{font-size:15px}
@@ -778,7 +788,7 @@
           </div>
           <div class="sd-rec-total">
             <div><span>Total pago</span><b id="sdRValor">R$ 0,00</b></div>
-            <span class="sd-rec-placa" id="sdRPlaca">—</span>
+            <div class="gp-placa merco" id="sdRPlaca"></div>
           </div>
           <div class="sd-rec-grid">
             <div><span>Entrada</span><b id="sdREnt">—</b></div>
@@ -1102,6 +1112,8 @@
     return null;
   }
 
+
+  window.gipePlacaUf = function(s){ var u = ufDaPlaca(String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '')); return u ? { uf:u, nome:UFS[u][0] } : null; };
 
   var CORES = [['BRANCO','#FFFFFF'],['PRETO','#1A1A1A'],['PRATA','#C3C7CC'],['CINZA','#6E747C'],['VERMELHO','#B3261E'],['AZUL','#1F4FD6'],['VERDE','#2E7D4F'],['BEGE','#D8C7A3']];
   var CATS = [
@@ -2267,6 +2279,30 @@
 (function(){
   // Código da forma de pagamento na API
   var FORMAS = { 'Dinheiro':1, 'PIX':2, 'Débito':3, 'Crédito':4 };
+  // Desenha a placa com cara de placa: Mercosul (faixa azul BRASIL) ou antiga (cinza, faixa com o estado)
+  function desenharPlaca(el, placa, ufInfo){
+    var s = String(placa || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    var antiga = /^[A-Z]{3}[0-9]{4}$/.test(s);
+    var txt = !s ? '—' : (antiga ? s.slice(0,3) + '-' + s.slice(3) : s);
+    var esc = function(x){ return String(x).replace(/[&<>"]/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); };
+    el.className = (el.className.replace(/\b(gp-placa|merco|antiga)\b/g, '').trim() + ' gp-placa ' + (antiga ? 'antiga' : 'merco')).trim();
+    el.setAttribute('aria-label', 'Placa ' + txt);
+    var faixa = antiga
+      ? '<span class="gp-bd">' + esc(ufInfo ? ufInfo.nome.toUpperCase() + ' · ' + ufInfo.uf : 'BRASIL') + '</span>'
+      : '<span class="gp-bd"><span class="gp-br">BR</span>BRASIL<svg class="gp-fl" viewBox="0 0 13 9" aria-hidden="true"><rect width="13" height="9" fill="#009C3B"/><path d="M6.5 1L12 4.5 6.5 8 1 4.5z" fill="#FFDF00"/><circle cx="6.5" cy="4.5" r="1.9" fill="#002776"/></svg></span>';
+    el.innerHTML = faixa + '<span class="gp-nm">' + esc(txt) + '</span>';
+    ajustarPlaca(el);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ ajustarPlaca(el); });
+  }
+  // diminui a fonte até os caracteres caberem na placa
+  function ajustarPlaca(el){
+    var nm = el.querySelector('.gp-nm'); if (!nm) return;
+    nm.style.fontSize = '';
+    var tam = parseFloat(getComputedStyle(nm).fontSize) || 32;
+    if (!nm.clientWidth){ requestAnimationFrame(function(){ if (nm.isConnected && nm.clientWidth) ajustarPlaca(el); }); return; }
+    while (nm.scrollWidth > nm.clientWidth && tam > 14){ tam -= 1; nm.style.fontSize = tam + 'px'; }
+  }
+
 
   // Usado SOMENTE se a API não devolver o valor a cobrar (valores de exemplo)
   var TARIFAS = {
@@ -2587,7 +2623,7 @@
         $('sdRPagto').textContent = cc.valor > 0 ? 'Pagamento recebido · ' + pagamento : 'Sem cobrança';
         $('sdRNum').textContent = 'Nº ' + (t.sequencial || '—');
         $('sdRValor').textContent = brl(cc.valor);
-        $('sdRPlaca').textContent = t.placaFmt || '—';
+        desenharPlaca($('sdRPlaca'), t.placa, window.gipePlacaUf ? gipePlacaUf(t.placa) : null);
         $('sdREnt').textContent = t.entrada ? curto(t.entrada) : '—';
         $('sdRSai').textContent = curto(saida);
         $('sdRPerm').textContent = cc.perm;

@@ -34,7 +34,17 @@
   .total div{display:flex;flex-direction:column;gap:2px}
   .total b{font-family:'Barlow Condensed',sans-serif;font-size:clamp(32px,10vw,44px);font-weight:700;line-height:1;white-space:nowrap}
   .total small{font-size:13px;color:var(--muted)}
-  .placa{flex-shrink:0;font-family:'Barlow Condensed',sans-serif;font-size:clamp(18px,5.6vw,26px);font-weight:700;letter-spacing:.06em;border:2px solid var(--ink);border-radius:6px;padding:0 8px;white-space:nowrap}
+  /* placa com visual real (Mercosul ou modelo antigo) */
+  .gp-placa{display:inline-flex;flex-direction:column;flex-shrink:0;width:clamp(112px,34vw,136px);border:2px solid #14181F;border-radius:7px;overflow:hidden;background:#fff;box-shadow:0 1px 2px rgba(20,24,31,.18);color:#14181F;text-transform:none;letter-spacing:0}
+  .gp-placa .gp-bd{position:relative;height:16px;display:flex;align-items:center;justify-content:center;font:700 8.5px/1 system-ui,-apple-system,'Segoe UI',sans-serif;letter-spacing:.2em;white-space:nowrap;overflow:hidden;padding:0 18px;text-transform:none}
+  .gp-placa .gp-bd span{font:inherit;color:inherit;text-transform:none}
+  .gp-placa .gp-nm{display:block;font-family:'Barlow Condensed','Arial Narrow',sans-serif;font-weight:700;font-size:32px;line-height:1.08;letter-spacing:.05em;text-align:center;white-space:nowrap;overflow:hidden;padding:1px 4px 2px;color:#14181F;text-transform:none}
+  .gp-placa.merco .gp-bd{background:#0F3DA8;color:#fff}
+  .gp-placa.merco .gp-br{position:absolute;left:4px;top:50%;transform:translateY(-50%);font-size:6.5px;letter-spacing:.04em;opacity:.95}
+  .gp-placa.merco .gp-fl{position:absolute;right:4px;top:50%;transform:translateY(-50%);width:13px;height:9px;display:block}
+  .gp-placa.antiga{background:linear-gradient(180deg,#DADDE0,#B8BCC1)}
+  .gp-placa.antiga .gp-bd{background:transparent;color:#14181F;border-bottom:1.5px solid #14181F;font-size:7.5px;letter-spacing:.06em;padding:0 6px;text-overflow:ellipsis}
+  .gp-placa.antiga .gp-nm{line-height:1.12}
   .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 10px}
   .grid div{display:flex;flex-direction:column;gap:2px;min-width:0}
   .grid b{font-size:15px;font-weight:600;overflow-wrap:anywhere}
@@ -94,7 +104,7 @@
       </div>
       <div class="total">
         <div><span class="k">Total pago</span><b id="valor">—</b><small id="pagto"></small></div>
-        <span class="placa" id="placa">—</span>
+        <div id="placa" class="gp-placa merco"></div>
       </div>
       <div class="grid">
         <div><span class="k">Entrada</span><b id="entrada">—</b></div>
@@ -234,6 +244,85 @@
     return d.permApi || '—';
   }
 
+  /* ---------- Placa ---------- */
+  // UF pela série da placa antiga (tabela do Denatran)
+  var FAIXAS = {
+    PR:'AAA-BEZ RHA-RHZ SDP-SFO TAI-TBZ UAS-UCZ',
+    SP:'BFA-GKI QSN-QSZ SSR-SWZ TIO-TMJ UDA-UGV',
+    MG:'GKJ-HOK NXX-NYG OLO-OMH OOV-ORC OWH-OXK PUA-PZZ QMQ-QQZ QUA-QUZ QWR-QXZ RFA-RGD RMD-RNZ RTA-RVZ SHB-SJI SYA-SYZ UAI TCA-TEZ TWY-UAH',
+    MA:'HOL-HQE NHA-NHT NMP-NNI NWS-NXQ OIR-OJQ OXQ-OXZ PSA-PTZ ROA-ROZ SMM-SNJ UJM-UJZ',
+    MS:'HQF-HTW NRF-NSD OOG-OOU QAA-QAZ REW-REZ RWA-RWJ SLW-SML',
+    CE:'HTX-HZA NQL-NRE NUM-NVF OCB-OCU OHX-OIQ ORN-OSV OZA PMA-POZ RIA-RIL SAN-SAU SAV-SBV THN-TIN',
+    SE:'HZB-IAP NVG-NVN OEJ-OES OZB QKN-QKZ QMA-QMP RQW-RRH TNU-TOD',
+    RS:'IAQ-JDO TQO-TRW',
+    DF:'JDP-JKR OVM-OVV OZW-PBZ REC-REV SGN-SGZ SSF-SSQ TUY-TUZ TVK UIV-UJL',
+    BA:'JKS-JSZ NTD-NTW NYH-NZZ OKI-OLG OUF-OVD OZC-OZV PJA-PLZ QTU-QTZ RCO-RDR RPA-RPZ SJJ-SKT TGR-THH TMK-TNG',
+    PA:'JTA-JWE NSE-NTC OBT-OCA OFI-OFW OSW-OTZ QDA-QEZ QVA-QVZ RWK-RXJ SZA-SZZ TVL-TWK',
+    AM:'JWF-JXY NOI-NPB OAA-OAO OXM PHA-PHZ QZA-QZZ TAA-TAH TRX-TSO',
+    MT:'JXZ-KAU NIY-NJW NPC-NPQ NTX-NUG OAP-OBS QBA-QCZ RAK-RAZ RRI-RRZ SPC-SQP',
+    GO:'KAV-KFC NFC-NGZ NJX-NLU NVO-NWR OGH-OHA OMI-OOF PQA-PRZ QTN-QTS RBK-RCN SBW-SDO TFA-TGN',
+    PE:'KFD-KME NXU-NXW OYL-OYZ PCA-PED PEE-PFQ PFR-PGK PGL-PGU PGV-PGZ QYA-QYZ RZE-RZZ SNK-SPB UHJ-UII',
+    RJ:'KMF-LVE RIO RIP-RKV SQV-SSE TTA-TUX',
+    PI:'LVF-LWQ NHU-NIX ODU-OEI OUA-OUE OVW-OVY PIA-PIZ QRN-QRZ RSG-RST SLM-SLV UKF-UKN',
+    SC:'LWR-MMM OKD-OKH QHA-QJZ QTK-QTM RAA-RAJ RDS-REB RKW-RLP RXK-RYZ SXA-SXZ TPI-TQE',
+    PB:'MMN-MOW NPR-NQK OET-OFH OFX-OGG OXO QFA-QFZ QSA-QSM RLQ-RLZ SKU-SLF TOT-TPH',
+    ES:'MOX-MTZ OCV-ODT OVE-OVF OVH-OVL OYD-OYK PPA-PPZ QRB-QRM RBA-RBJ RQM-RQV SFP-SGM TOE-TOS',
+    AL:'MUA-MVK NLV-NMO OHB-OHK ORD-ORM OXN QLA-QLM QTT QWG-QWL RGO-RGU RGV-RGZ SAA-SAJ TNH-TNT',
+    TO:'MVL-MXG OLH-OLN OYA-OYC QKA-QKM QWA-QWF RIM-RIN RMA-RMC RSA-RSF TVA-TVD',
+    RN:'MXH-MZM NNJ-NOH OJR-OKC OVZ-OWG QGA-QGZ RGE-RGM RGN RQA-RQL TSP-TSZ',
+    AC:'MZN-NAG NXR-NXT OVG OXP QLU-QLZ QWM-QWQ SHA SQQ-SQU',
+    RR:'NAH-NBA NUH-NUL RZA-RZD',
+    RO:'NBB-NEH OHL-OHW OXL QRA QTA-QTJ RSU-RSZ SLG-SLL THI-THM UAJ-UAR',
+    AP:'NEI-NFB QLN-QLT SAK-SAM TGO-TGQ UKO-UKQ'
+  };
+  var UFS = {
+    AC:['Acre','Rio Branco'], AL:['Alagoas','Maceió'], AP:['Amapá','Macapá'], AM:['Amazonas','Manaus'],
+    BA:['Bahia','Salvador'], CE:['Ceará','Fortaleza'], DF:['Distrito Federal','Brasília'], ES:['Espírito Santo','Vitória'],
+    GO:['Goiás','Goiânia'], MA:['Maranhão','São Luís'], MT:['Mato Grosso','Cuiabá'], MS:['Mato Grosso do Sul','Campo Grande'],
+    MG:['Minas Gerais','Belo Horizonte'], PA:['Pará','Belém'], PB:['Paraíba','João Pessoa'], PR:['Paraná','Curitiba'],
+    PE:['Pernambuco','Recife'], PI:['Piauí','Teresina'], RJ:['Rio de Janeiro','Rio de Janeiro'], RN:['Rio Grande do Norte','Natal'],
+    RS:['Rio Grande do Sul','Porto Alegre'], RO:['Rondônia','Porto Velho'], RR:['Roraima','Boa Vista'], SC:['Santa Catarina','Florianópolis'],
+    SP:['São Paulo','São Paulo'], SE:['Sergipe','Aracaju'], TO:['Tocantins','Palmas']
+  };
+
+  function idx3(t){ return (t.charCodeAt(0)-65)*676 + (t.charCodeAt(1)-65)*26 + (t.charCodeAt(2)-65); }
+  var TABELA = [];
+  Object.keys(FAIXAS).forEach(function(uf){
+    FAIXAS[uf].split(' ').forEach(function(f){
+      var p = f.split('-'); TABELA.push([idx3(p[0]), idx3(p[1] || p[0]), uf]);
+    });
+  });
+  function ufDaPlaca(s){
+    if (!/^[A-Z]{3}/.test(s)) return null;
+    var i = idx3(s.slice(0,3));
+    for (var k = 0; k < TABELA.length; k++) if (i >= TABELA[k][0] && i <= TABELA[k][1]) return TABELA[k][2];
+    return null;
+  }
+  function ufInfo(p){ var s = String(p || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); var u = ufDaPlaca(s); return u ? { uf:u, nome:UFS[u][0] } : null; }
+  // Desenha a placa com cara de placa: Mercosul (faixa azul BRASIL) ou antiga (cinza, faixa com o estado)
+  function desenharPlaca(el, placa, ufInfo){
+    var s = String(placa || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    var antiga = /^[A-Z]{3}[0-9]{4}$/.test(s);
+    var txt = !s ? '—' : (antiga ? s.slice(0,3) + '-' + s.slice(3) : s);
+    var esc = function(x){ return String(x).replace(/[&<>"]/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); };
+    el.className = (el.className.replace(/\b(gp-placa|merco|antiga)\b/g, '').trim() + ' gp-placa ' + (antiga ? 'antiga' : 'merco')).trim();
+    el.setAttribute('aria-label', 'Placa ' + txt);
+    var faixa = antiga
+      ? '<span class="gp-bd">' + esc(ufInfo ? ufInfo.nome.toUpperCase() + ' · ' + ufInfo.uf : 'BRASIL') + '</span>'
+      : '<span class="gp-bd"><span class="gp-br">BR</span>BRASIL<svg class="gp-fl" viewBox="0 0 13 9" aria-hidden="true"><rect width="13" height="9" fill="#009C3B"/><path d="M6.5 1L12 4.5 6.5 8 1 4.5z" fill="#FFDF00"/><circle cx="6.5" cy="4.5" r="1.9" fill="#002776"/></svg></span>';
+    el.innerHTML = faixa + '<span class="gp-nm">' + esc(txt) + '</span>';
+    ajustarPlaca(el);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function(){ ajustarPlaca(el); });
+  }
+  // diminui a fonte até os caracteres caberem na placa
+  function ajustarPlaca(el){
+    var nm = el.querySelector('.gp-nm'); if (!nm) return;
+    nm.style.fontSize = '';
+    var tam = parseFloat(getComputedStyle(nm).fontSize) || 32;
+    if (!nm.clientWidth){ requestAnimationFrame(function(){ if (nm.isConnected && nm.clientWidth) ajustarPlaca(el); }); return; }
+    while (nm.scrollWidth > nm.clientWidth && tam > 14){ tam -= 1; nm.style.fontSize = tam + 'px'; }
+  }
+
   /* ---------- Tela ---------- */
   function mensagem(tit, txt){
     $('msgTit').textContent = tit; $('msgTxt').textContent = txt || '';
@@ -248,7 +337,7 @@
     $('ticket').textContent = d.ticket || '—';
     $('valor').textContent = d.valor === null ? '—' : brl(d.valor);
     $('pagto').textContent = d.forma ? 'Pago em ' + d.forma.toLowerCase() : '';
-    $('placa').textContent = d.placa || '—';
+    desenharPlaca($('placa'), d.placa, ufInfo(d.placa));
     $('entrada').textContent = d.entrada ? dataHora(d.entrada) : '—';
     $('saida').textContent = d.saida ? dataHora(d.saida) : '—';
     $('perm').textContent = permanencia(d);
