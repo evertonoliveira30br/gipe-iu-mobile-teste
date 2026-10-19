@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14181F">
+<meta name="robots" content="noindex">
+<title>Comprovante de Entrada</title>
+<link rel="icon" type="image/png" href="../app/icons/favicon-48.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<style>
+  :root{
+    --ink:#14181F; --muted:#4A5260; --line:#DADDE2; --soft:#F4F5F2; --white:#FFFFFF;
+    --blue:#1F4FD6; --yellow:#F2B705; --green:#1E6B3A; --red:#B3261E;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  html,body{margin:0;background:var(--soft);color:var(--ink);font-family:'Archivo',system-ui,sans-serif;-webkit-text-size-adjust:100%}
+  .app{max-width:480px;margin:0 auto;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;background:var(--soft)}
+  .top{background:var(--ink);color:#fff;padding:calc(22px + env(safe-area-inset-top)) 18px 56px;display:flex;flex-direction:column;gap:4px}
+  .kick{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--yellow)}
+  .tit{font-size:22px;font-weight:700}
+  .sub{font-size:13px;color:#B9C0CC;line-height:1.4}
+  .card{margin:-40px 16px 0;background:#fff;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:16px;border:1px solid var(--line)}
+  .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .status{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--green)}
+  .status i{width:10px;height:10px;border-radius:5px;background:var(--green);display:block}
+  .status.saiu{color:var(--muted)} .status.saiu i{background:var(--muted)}
+  .tk{font-size:13px;color:var(--muted)}
+  .k{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .meio{display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0}
+  .elapsed{font-family:'Barlow Condensed',sans-serif;font-size:58px;font-weight:700;line-height:1}
+  .valor{font-size:15px;color:var(--muted);text-align:center}
+  .valor b{color:var(--ink);font-size:20px}
+  .chip{background:#E8EEFF;color:#1A3A9E;font-size:13px;font-weight:700;padding:6px 12px;border-radius:20px}
+  .atu{font-size:12px;color:var(--muted)}
+  .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 10px;border-top:1px solid #E6E8EB;padding-top:14px}
+  .grid div{display:flex;flex-direction:column;gap:2px;min-width:0}
+  .grid b{font-size:15px;font-weight:600;overflow-wrap:anywhere}
+  .placa{font-family:'Barlow Condensed',sans-serif;font-size:22px!important;font-weight:700!important;letter-spacing:.05em}
+  .qrsec{display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px 16px 8px;text-align:center}
+  .qrbox{background:#fff;border-radius:16px;padding:12px;border:1px solid var(--line)}
+  .qr{width:168px;height:168px;display:flex;align-items:center;justify-content:center}
+  .qr svg{width:100%;height:100%;display:block}
+  .qrsec b{font-size:15px}
+  .qrsec span{font-size:13px;color:var(--muted)}
+  .rod{margin-top:auto;padding:16px 16px calc(18px + env(safe-area-inset-bottom));text-align:center;font-size:12px;color:var(--muted)}
+  .msg{margin:-40px 16px 0;background:#fff;border-radius:18px;padding:28px 20px;border:1px solid var(--line);text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center;font-size:15px;line-height:1.45;color:var(--muted)}
+  .msg b{color:var(--ink);font-size:18px}
+  .aviso{margin:12px 16px 0;padding:10px 12px;border-radius:12px;background:#FFF4EC;color:#9A3412;font-size:13px;font-weight:600;text-align:center}
+  .skel{color:transparent!important;background:#ECEEF1;border-radius:6px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <span class="kick">Comprovante de entrada</span>
+    <span class="tit" id="estNome">Estacionamento</span>
+    <span class="sub" id="estEnd"></span>
+  </div>
+
+  <!-- Carregando / erro -->
+  <div class="msg" id="msg">
+    <b id="msgTit">Carregando comprovante…</b>
+    <span id="msgTxt">Aguarde um instante.</span>
+  </div>
+
+  <!-- Comprovante -->
+  <div id="conteudo" hidden>
+    <div class="card">
+      <div class="row">
+        <span class="status" id="status"><i></i><span id="statusTxt">Veículo no pátio</span></span>
+        <span class="tk">Ticket Nº <span id="ticket">—</span></span>
+      </div>
+      <div class="meio">
+        <span class="k">Tempo de permanência</span>
+        <span class="elapsed" id="tempo">0h 00min</span>
+        <span class="valor" id="valorLinha">Valor até agora: <b id="valor">—</b></span>
+        <span class="chip" id="chipMensal" hidden>Coberto pelo plano · nada a pagar</span>
+        <span class="atu" id="atualizado"></span>
+      </div>
+      <div class="grid">
+        <div><span class="k">Placa</span><b class="placa" id="placa">—</b></div>
+        <div><span class="k">Entrada</span><b id="entrada">—</b></div>
+        <div><span class="k">Veículo</span><b id="veiculo">—</b></div>
+        <div><span class="k">Categoria</span><b id="categoria">—</b></div>
+      </div>
+    </div>
+    <div class="aviso" id="aviso" hidden></div>
+    <div class="qrsec" id="qrSec">
+      <div class="qrbox"><div class="qr" id="qr" role="img" aria-label="QR Code para a saída"></div></div>
+      <b>Apresente este código na saída</b>
+      <span>Código <strong id="codigo">—</strong></span>
+    </div>
+  </div>
+
+  <div class="rod">GIPE · Estacionamento</div>
+</div>
+
+<script>
+(function(){
+  var API = 'https://api.gipepark.com.br/api/v1/patio/comprovante/cliente?token=';
+  var ATUALIZA_API_MS = 5 * 60 * 1000;   // valor: consulta a API a cada 5 minutos
+  var ATUALIZA_TEMPO_MS = 60 * 1000;     // permanência: recalcula na tela a cada 1 minuto
+  var CATEGORIAS = { 1:'Moto', 2:'Carro pequeno', 3:'Carro médio', 4:'Carro grande', 5:'Caminhonete', 6:'Caminhão' };
+
+  var $ = function(id){ return document.getElementById(id); };
+  var token = (new URLSearchParams(location.search).get('t') || '').trim();
+  var dados = null, ultimaConsulta = 0, timerApi = null, timerTempo = null, encerrado = false;
+
+  function pad(n){ return String(n).padStart(2, '0'); }
+  function brl(v){ return Number(v).toLocaleString('pt-BR', { style:'currency', currency:'BRL' }); }
+  function dataHora(ms){ var d = new Date(ms); return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + ' · ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+  function hora(ms){ var d = new Date(ms); return pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+
+  /* ---------- Leitura flexível da resposta ---------- */
+  function campo(obj, nomes){
+    if (!obj || typeof obj !== 'object') return undefined;
+    var fontes = [obj, obj.dados, obj.data, obj.result, obj.resultado, obj.value, obj.veiculo, obj.ticket, obj.comprovante];
+    for (var f = 0; f < fontes.length; f++){
+      var o = fontes[f]; if (!o || typeof o !== 'object' || Array.isArray(o)) continue;
+      var ch = Object.keys(o);
+      for (var n = 0; n < nomes.length; n++) for (var k = 0; k < ch.length; k++)
+        if (ch[k].toLowerCase() === nomes[n].toLowerCase() && o[ch[k]] !== null && o[ch[k]] !== '') return o[ch[k]];
+    }
+    return undefined;
+  }
+  function texto(v, nomes){
+    if (v === undefined || v === null) return '';
+    if (typeof v === 'object') v = campo(v, nomes || ['nome','descricao','valor']);
+    return v === undefined || v === null ? '' : String(v);
+  }
+  function data(v){ if (!v) return null; if (typeof v === 'number') return v < 1e12 ? v * 1000 : v; var t = Date.parse(String(v)); return isNaN(t) ? null : t; }
+  function numero(v){
+    if (v === undefined || v === null || v === '' || typeof v === 'object') return null;
+    if (typeof v === 'number') return v;
+    var s = String(v).replace(/[^\d,.-]/g, ''); if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+    var n = parseFloat(s); return isNaN(n) ? null : n;
+  }
+  function simNao(v){
+    if (typeof v === 'boolean') return v; if (typeof v === 'number') return v !== 0;
+    return typeof v === 'string' && /^(true|sim|s|1|mensal|mensalista)$/i.test(v.trim());
+  }
+  function categoria(v){
+    if (v === undefined || v === null) return '';
+    if (typeof v === 'object'){ var d = texto(v, ['descricao','nome']); if (d) return d; v = campo(v, ['id','codigo']); }
+    return CATEGORIAS[Number(v)] || String(v);
+  }
+  function normalizar(r){
+    if (Array.isArray(r)) r = r[0];
+    if (r && Array.isArray(r.dados)) r = r.dados[0];
+    if (r && Array.isArray(r.data)) r = r.data[0];
+    if (!r || typeof r !== 'object') return null;
+    var placa = texto(campo(r, ['placa','placaVeiculo'])).toUpperCase().replace(/[^A-Z0-9]/g, '');
+    var est = campo(r, ['estacionamento','empresa','unidade']);
+    return {
+      placa: /^[A-Z]{3}[0-9]{4}$/.test(placa) ? placa.slice(0,3) + '-' + placa.slice(3) : placa,
+      ticket: texto(campo(r, ['sequencial','codigoTicket','numeroTicket','ticket','numero'])),
+      veiculo: [texto(campo(r, ['modelo','modeloVeiculo'])), texto(campo(r, ['cor','corVeiculo']))].filter(Boolean).join(' · ').toUpperCase(),
+      categoria: categoria(campo(r, ['categoria','categoriaId','tipoVeiculo','categoriaVeiculo'])),
+      entrada: data(campo(r, ['dataEntrada','dataHoraEntrada','entrada','horaEntrada','entradaEm','criadoEm'])),
+      saida: data(campo(r, ['dataSaida','dataHoraSaida','saida','saidaEm'])),
+      valor: numero(campo(r, ['valor','valorAtual','valorParcial','valorAteAgora','valorTotal','valorAPagar','valorCalculado','total'])),
+      mensalista: simNao(campo(r, ['mensalista','isMensalista','ehMensalista'])),
+      estNome: texto(est, ['nome','nomeFantasia','razaoSocial']) || texto(campo(r, ['nomeEstacionamento','nomeEmpresa'])),
+      estEnd: texto(est, ['endereco','logradouro']) || texto(campo(r, ['enderecoEstacionamento','endereco']))
+    };
+  }
+
+  /* ---------- Tela ---------- */
+  function mensagem(tit, txt){
+    $('msgTit').textContent = tit; $('msgTxt').textContent = txt || '';
+    $('msg').hidden = false; $('conteudo').hidden = true;
+  }
+  function aviso(t){ $('aviso').textContent = t || ''; $('aviso').hidden = !t; }
+
+  function atualizarTempo(){
+    if (!dados || !dados.entrada) { $('tempo').textContent = '—'; return; }
+    var fim = dados.saida || Date.now();
+    var min = Math.max(0, Math.floor((fim - dados.entrada) / 60000));
+    $('tempo').textContent = Math.floor(min / 60) + 'h ' + pad(min % 60) + 'min';
+  }
+
+  function render(){
+    var d = dados;
+    $('msg').hidden = true; $('conteudo').hidden = false;
+    if (d.estNome) $('estNome').textContent = d.estNome;
+    $('estEnd').textContent = d.estEnd || '';
+    $('ticket').textContent = d.ticket || '—';
+    $('placa').textContent = d.placa || '—';
+    $('entrada').textContent = d.entrada ? dataHora(d.entrada) : '—';
+    $('veiculo').textContent = d.veiculo || '—';
+    $('categoria').textContent = d.categoria || '—';
+
+    encerrado = !!d.saida;
+    $('status').classList.toggle('saiu', encerrado);
+    $('statusTxt').textContent = encerrado ? 'Saída registrada · ' + dataHora(d.saida) : 'Veículo no pátio';
+    $('chipMensal').hidden = !d.mensalista;
+    $('valorLinha').hidden = d.mensalista;
+    $('valorLinha').firstChild.nodeValue = encerrado ? 'Valor pago: ' : 'Valor até agora: ';
+    $('valor').textContent = d.valor === null ? '—' : brl(d.valor);
+    $('atualizado').textContent = encerrado ? '' : 'Valor atualizado às ' + hora(ultimaConsulta) + ' · atualiza a cada 5 min';
+    $('qrSec').hidden = encerrado;
+    atualizarTempo();
+  }
+
+  function desenharQR(){
+    var el = $('qr'); $('codigo').textContent = token;
+    if (typeof qrcode !== 'function'){ el.textContent = token; return; }
+    var q = qrcode(0, 'M'); q.addData(location.href); q.make();
+    el.innerHTML = q.createSvgTag({ cellSize: 6, margin: 0, scalable: true });
+  }
+
+  /* ---------- Consulta à API ---------- */
+  function consultar(){
+    return fetch(API + encodeURIComponent(token), { headers: { 'Accept': 'application/json' }, cache: 'no-store' })
+      .then(function(r){
+        return r.text().then(function(txt){
+          var j = null; try { j = txt ? JSON.parse(txt) : null; } catch(e){ j = null; }
+          if (r.status === 404 || r.status === 400) { var e1 = new Error('nao-encontrado'); e1.naoEncontrado = true; throw e1; }
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          var n = normalizar(j);
+          if (!n) { var e2 = new Error('nao-encontrado'); e2.naoEncontrado = true; throw e2; }
+          return n;
+        });
+      })
+      .then(function(n){
+        dados = n; ultimaConsulta = Date.now(); aviso('');
+        render();
+        if (encerrado) pararAtualizacoes();
+      })
+      .catch(function(e){
+        if (e.naoEncontrado){
+          pararAtualizacoes();
+          mensagem('Comprovante não encontrado', 'Este ticket não existe ou já foi encerrado. Fale com o atendente do estacionamento.');
+        } else if (dados){
+          aviso('Sem conexão agora — mostrando o último valor (' + hora(ultimaConsulta) + '). Tentaremos de novo.');
+        } else {
+          mensagem('Não foi possível carregar', 'Verifique sua internet. Tentaremos de novo em instantes.');
+          clearTimeout(consultar.retry); consultar.retry = setTimeout(consultar, 30000);
+        }
+      });
+  }
+
+  function pararAtualizacoes(){ clearInterval(timerApi); clearInterval(timerTempo); timerApi = timerTempo = null; }
+
+  if (!/^[A-Za-z0-9]{4,32}$/.test(token)){
+    mensagem('Link inválido', 'Escaneie novamente o QR Code do seu comprovante de entrada.');
+    return;
+  }
+  desenharQR();
+  consultar();
+  timerApi = setInterval(function(){ if (!encerrado) consultar(); }, ATUALIZA_API_MS);
+  timerTempo = setInterval(atualizarTempo, ATUALIZA_TEMPO_MS);
+
+  // ao voltar para a página depois de um tempo, atualiza na hora
+  document.addEventListener('visibilitychange', function(){
+    if (document.hidden || encerrado || !timerApi) return;
+    atualizarTempo();
+    if (Date.now() - ultimaConsulta >= ATUALIZA_API_MS) consultar();
+  });
+})();
+</script>
+</body>
+</html>

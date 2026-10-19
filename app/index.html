@@ -1,0 +1,2427 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14181F">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" sizes="48x48" href="icons/favicon-48.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GIPE">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>GIPE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<!-- Gera o PDF do comprovante do mensalista -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<!-- Leitura automática de placa: ONNX Runtime Web (MIT) -->
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js"></script>
+<style>
+  :root{
+    --ink:#14181F; --muted:#4A5260; --line:#C9CDD4; --soft:#F4F5F2; --white:#FFFFFF;
+    --blue:#1F4FD6; --yellow:#F2B705; --green:#1E6B3A; --red:#B3261E;
+    --page:#E4E6E2; --page-ink:#14181F;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){ --page:#0A0C10; --page-ink:#E8EAED; }
+  }
+  :root[data-theme="dark"]{ --page:#0A0C10; --page-ink:#E8EAED; }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--page);color:var(--page-ink);font-family:'Archivo',system-ui,sans-serif}
+  .wrap{max-width:1740px;margin:0 auto;padding:28px 16px 48px}
+  .top{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:22px}
+  .top h1{margin:0;font-size:26px}
+  .top p{margin:0;font-size:14px;opacity:.75}
+  .row{display:flex;flex-wrap:wrap;gap:32px;justify-content:center}
+  .col{display:flex;flex-direction:column;gap:10px;width:390px;max-width:100%}
+  .col-title{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.8}
+
+  .phone{width:390px;max-width:100%;height:844px;border-radius:28px;overflow:hidden;display:flex;flex-direction:column;color:var(--ink);box-shadow:0 10px 40px rgba(0,0,0,.18);position:relative}
+  button,input{font-family:inherit}
+  button{cursor:pointer}
+  :focus-visible{outline:3px solid var(--blue);outline-offset:2px}
+  .lbl{font-size:13px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+  .k{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+
+  /* ---------- A ---------- */
+  .a{background:var(--soft)}
+  .a header{display:flex;align-items:center;gap:12px;padding:16px 16px 12px;background:var(--ink);color:#fff}
+  .icon-btn{width:44px;height:44px;border-radius:12px;border:1px solid #3A4250;background:transparent;color:#fff;display:flex;align-items:center;justify-content:center}
+  .a main{flex:1;display:flex;flex-direction:column;gap:18px;padding:18px 16px 0;overflow:auto}
+  .sec{display:flex;flex-direction:column;gap:8px}
+  .sec-h{display:flex;justify-content:space-between;align-items:baseline}
+
+  /* Placa – entrada */
+  .plate{border:3px solid var(--ink);border-radius:10px;overflow:hidden;transition:background .2s}
+  .plate .band{font-size:11px;font-weight:700;letter-spacing:.2em;text-align:center;padding:4px 0;transition:background .2s,color .2s}
+  .plate input{width:100%;border:0;background:transparent;text-align:center;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:52px;letter-spacing:.08em;color:var(--ink);padding:2px 0 6px;text-transform:uppercase}
+  .plate input:focus{outline:none}
+  .plate input::placeholder{color:#A6ACB5}
+  .plate.merco{background:#fff}
+  .plate.merco .band{background:var(--blue);color:#fff}
+  .plate.antiga{background:linear-gradient(180deg,#D3D6D9,#B9BDC2)}
+  .plate.antiga .band{background:transparent;color:var(--ink);border-bottom:2px solid var(--ink)}
+  .plate:focus-within{box-shadow:0 0 0 3px rgba(31,79,214,.35)}
+  .hint{font-size:13px;font-weight:600;min-height:18px;display:flex;align-items:center;gap:6px}
+  .hint.ok{color:var(--green)} .hint.err{color:var(--red)} .hint.info{color:var(--muted)}
+
+  .txt{height:48px;border-radius:10px;border:1px solid var(--line);background:#fff;padding:0 14px;font-size:16px;color:var(--ink);text-transform:uppercase}
+  .txt:focus{outline:2px solid var(--blue);outline-offset:1px}
+
+  .cores{display:flex;gap:8px;flex-wrap:wrap}
+  .cor{width:38px;height:38px;border-radius:50%;border:1px solid #9AA1AB;padding:0}
+  .cor[aria-pressed="true"]{box-shadow:0 0 0 3px var(--soft),0 0 0 5px var(--ink)}
+
+  .cats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .cat{height:92px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:600;padding:6px;background:#fff;color:var(--ink);border:1px solid var(--line)}
+  .cat[aria-pressed="true"]{background:var(--ink);color:#fff;border:2px solid var(--ink)}
+
+  .a footer{padding:14px 16px 20px}
+  .cta{width:100%;height:56px;border-radius:14px;border:0;background:var(--yellow);color:var(--ink);font-size:21px;font-weight:700}
+  .cta:disabled{background:#E3E5E8;color:#7A818B;cursor:not-allowed}
+
+  /* ---------- D ---------- */
+  .d{background:var(--ink);padding:14px 12px 16px;gap:12px}
+  .ok-head{display:flex;align-items:center;gap:10px;color:#fff;padding:0 4px;font-size:16px;font-weight:700}
+  .ok-dot{width:26px;height:26px;border-radius:13px;background:var(--green);display:flex;align-items:center;justify-content:center}
+  .ticket{flex:1;min-height:0;background:#fff;border-radius:20px;display:flex;flex-direction:column;overflow:hidden}
+  .t-head{padding:18px 20px 14px;display:flex;flex-direction:column;gap:4px;border-top:8px solid var(--yellow)}
+  .t-name{font-size:21px;font-weight:700}
+  .t-addr{font-size:13px;color:var(--muted);line-height:1.45}
+  .t-plate-row{padding:0 20px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .t-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 12px;padding:0 20px 18px}
+  .t-grid div{display:flex;flex-direction:column;gap:2px}
+  .big{font-size:22px;font-weight:700}
+  .mid{font-size:17px;font-weight:600}
+  .perf{display:flex;align-items:center;height:26px}
+  .perf .l{width:13px;height:26px;border-radius:0 13px 13px 0;background:var(--ink)}
+  .perf .r{width:13px;height:26px;border-radius:13px 0 0 13px;background:var(--ink)}
+  .perf .dash{flex:1;border-top:2px dashed var(--line);margin:0 6px}
+  .t-qr{flex:1;padding:10px 20px 12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center}
+  .qr{width:196px;height:196px;display:flex;align-items:center;justify-content:center;background:#fff}
+  .qr svg{width:100%;height:100%;display:block}
+  .t-foot{background:var(--soft);padding:12px 20px;font-size:13px;color:var(--muted);display:flex;justify-content:space-between}
+  .d .cta{height:56px;font-size:17px}
+
+  /* Placa – mini */
+  .mplate{border:3px solid var(--ink);border-radius:8px;overflow:hidden;flex:1}
+  .mplate .band{font-size:9px;font-weight:700;letter-spacing:.2em;text-align:center;padding:3px 0}
+  .mplate .num{white-space:nowrap;text-align:center;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:38px;letter-spacing:.06em;line-height:1.15}
+  .mplate.merco{background:#fff} .mplate.merco .band{background:var(--blue);color:#fff}
+  .mplate.antiga .num{font-size:36px;line-height:1.3}
+  .mplate.antiga{background:linear-gradient(180deg,#D3D6D9,#B9BDC2)} .mplate.antiga .band{color:var(--ink);border-bottom:2px solid var(--ink)}
+
+  /* ---------- F ---------- */
+  .f{background:var(--soft)}
+  .f-top{background:var(--ink);color:#fff;padding:22px 18px 54px;display:flex;flex-direction:column;gap:4px}
+  .f-card{margin:-38px 16px 0;background:#fff;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:16px;border:1px solid #DADDE2}
+  .status{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--green)}
+  .status i{width:10px;height:10px;border-radius:5px;background:var(--green);display:block}
+  .elapsed{font-family:'Barlow Condensed',sans-serif;font-size:56px;font-weight:700;line-height:1}
+  .f-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 10px;border-top:1px solid #E6E8EB;padding-top:14px}
+  .f-grid div{display:flex;flex-direction:column;gap:2px}
+  .acts{padding:14px 16px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .act{height:68px;border-radius:12px;background:#fff;border:1px solid var(--line);color:var(--ink);text-decoration:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;font-size:13px;font-weight:600}
+  .f-qr{display:flex;justify-content:center;padding:0 16px}
+  .f-qr .box{background:#fff;border-radius:16px;padding:10px;border:1px solid #DADDE2}
+
+  /* ---------- Mensalista (M / N / O / P) ---------- */
+  .mcard{background:var(--blue);color:#fff;border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:14px}
+  .mcard .mtop{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .mselo{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.12em}
+  .mchip{font-size:12px;font-weight:700;padding:5px 10px;border-radius:20px;white-space:nowrap}
+  .mchip.ok{background:#E3F2E8;color:#1E6B3A}
+  .mchip.alerta{background:#FFF1C2;color:#7A5300}
+  .mchip.venc{background:#FDE7D9;color:#9A3412}
+  .mnome{font-size:22px;font-weight:700}
+  .mplano{font-size:14px;color:#D6E0FF}
+  .mval{display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.12);border-radius:12px;padding:12px}
+  .mval span{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#D6E0FF}
+  .mval b{font-size:17px}
+  .mcard.venc{background:#fff;color:var(--ink);border:2px solid #C2410C}
+  .mcard.venc .mselo{color:var(--blue)}
+  .mcard.venc .mplano{color:var(--muted)}
+  .maviso{display:flex;gap:10px;align-items:flex-start;background:#FFF4EC;border-radius:12px;padding:12px;color:#9A3412;font-size:14px;line-height:1.4}
+  .mopcoes{display:flex;flex-direction:column;gap:8px}
+  .mop{min-height:64px;border-radius:14px;border:1px solid var(--line);background:#fff;color:var(--ink);text-align:left;padding:10px 16px;display:flex;flex-direction:column;justify-content:center;gap:2px}
+  .mop b{font-size:16px} .mop span{font-size:13px;color:var(--muted)}
+  .mop[aria-pressed="true"]{background:var(--ink);color:#fff;border:2px solid var(--ink)}
+  .mop[aria-pressed="true"] span{color:#B9C0CC}
+  .mdados{background:#fff;border:1px solid #DADDE2;border-radius:14px;padding:4px 14px;display:flex;flex-direction:column}
+  .mdados div{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid #EEF0F2}
+  .mdados div:last-child{border-bottom:0}
+  .mdados span{font-size:13px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+  .mdados b{font-size:15px;display:flex;align-items:center;gap:8px}
+  .mdados i{width:16px;height:16px;border-radius:8px;border:1px solid #9AA1AB;display:inline-block}
+
+  /* O – cupom mensalista */
+  .t-mensal{background:var(--blue);color:#fff;padding:10px 20px;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;letter-spacing:.14em}
+  .ticket.mensal .t-head{border-top:0}
+  .t-foot.mensal{background:#E8EEFF;color:#1A3A9E;font-weight:600}
+  /* P – comprovante mensalista */
+  .f.mensal .f-top{background:var(--blue)}
+  .f.mensal .f-top .kick{color:#fff!important}
+  .f.mensal .f-top .sub{color:#D6E0FF!important}
+  .pchip{background:#E8EEFF;color:#1A3A9E;font-size:13px;font-weight:700;padding:6px 12px;border-radius:20px}
+
+  .t-mnota{flex:1;margin:4px 20px 14px;border:2px dashed #B9C6F2;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:18px;text-align:center;color:#1A3A9E}
+  .t-mnota b{font-size:17px;color:var(--ink)} .t-mnota span{font-size:14px;color:var(--muted);line-height:1.45}
+  .t-mnota .ic{width:56px;height:56px;border-radius:16px;background:#E8EEFF;display:flex;align-items:center;justify-content:center}
+
+  /* ---------- Q · Mensalista consulta pelo CPF ---------- */
+  .q{background:var(--soft)}
+  .q-top{background:var(--blue);color:#fff;padding:22px 18px 26px;display:flex;flex-direction:column;gap:4px}
+  .q-top .kick{font-size:12px;font-weight:700;letter-spacing:.12em;display:flex;align-items:center;gap:8px}
+  .q-top .tit{font-size:24px;font-weight:700;line-height:1.2}
+  .q-top .sub{font-size:13px;color:#D6E0FF}
+  .q-form{flex:1;display:flex;flex-direction:column;gap:14px;padding:22px 16px 20px}
+  .q-form .inp{height:60px;border-radius:14px;border:1px solid var(--line);background:#fff;padding:0 16px;font-size:24px;font-weight:600;letter-spacing:.06em;color:var(--ink);width:100%;text-align:center}
+  .q-form .inp:focus{outline:2px solid var(--blue);outline-offset:1px}
+  .q-msg{font-size:14px;font-weight:600;color:var(--red);text-align:center;min-height:20px}
+  .q-demo{font-size:12px;color:var(--muted);background:#E6E8EB;border-radius:10px;padding:10px 12px;line-height:1.5}
+  .q-btn{height:56px;border-radius:14px;border:0;background:var(--blue);color:#fff;font-size:18px;font-weight:700;width:100%}
+  .q-btn:disabled{background:#C9D3F5;cursor:not-allowed}
+  .q-out{border:0;background:transparent;color:#fff;font-size:13px;font-weight:600;padding:6px 0;text-align:left;text-decoration:underline;align-self:flex-start}
+
+  .p-acts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:12px 16px 0}
+  .p-act{height:52px;border-radius:12px;background:#fff;border:1px solid var(--line);color:var(--ink);text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:600}
+  .p-act:disabled{opacity:.6;cursor:wait}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,140px);background:var(--ink);color:#fff;font-weight:600;font-size:14px;padding:12px 16px;border-radius:12px;transition:transform .25s;z-index:20;max-width:calc(100% - 32px);text-align:center}
+  .toast.show{transform:translate(-50%,0)}
+
+  /* Vazio */
+  .empty{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:32px;text-align:center;font-size:15px;line-height:1.45}
+  .d .empty{color:#B9C0CC} .f .empty{color:var(--muted);background:var(--soft)}
+  [hidden]{display:none!important}
+
+
+  /* ---------- Leitor automático de placa (câmera dentro do campo Placa) ---------- */
+  .plate{position:relative}
+  .plate-cam{position:absolute;right:10px;bottom:12px;width:44px;height:44px;border-radius:12px;border:1px solid rgba(20,24,31,.25);background:rgba(255,255,255,.85);color:var(--ink);display:flex;align-items:center;justify-content:center;padding:0;z-index:2}
+  .plate.antiga .plate-cam{background:rgba(255,255,255,.55)}
+  /* visor maior que a placa: cresce para baixo, por cima dos campos, sem mover o layout */
+  .plate:has(.plate-scan:not([hidden])){overflow:visible}
+  .plate-scan{position:absolute;left:-4px;right:-4px;top:-4px;aspect-ratio:2.6/1;background:#000;z-index:6;border-radius:10px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+  .plate-scan video{width:100%;height:100%;object-fit:cover;display:block}
+  .scan-guide{position:absolute;top:50%;left:50%;width:88%;aspect-ratio:3.08/1;transform:translate(-50%,-50%);border:2px solid rgba(255,255,255,.9);border-radius:6px;box-shadow:0 0 0 9999px rgba(0,0,0,.45);pointer-events:none;transition:border-color .15s}
+  .scan-guide.lendo{border-color:var(--yellow)}
+  .scan-guide.ok{border-color:#2FB36B}
+  .scan-live{position:absolute;left:8px;bottom:6px;pointer-events:none}
+  .scan-live span{display:inline-block;background:rgba(0,0,0,.72);color:#fff;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:.03em}
+  .scan-tools{position:absolute;right:6px;top:6px;display:flex;flex-direction:column;gap:6px}
+  .scan-tools button{width:34px;height:34px;border-radius:9px;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.6);color:#fff;display:flex;align-items:center;justify-content:center;padding:0}
+  .scan-tools button.on{background:var(--yellow);color:var(--ink);border-color:var(--yellow)}
+
+  @media (max-width:430px){ .phone{height:auto;min-height:780px} }
+
+  /* =================== APP: cabeçalho, menu inferior e telas =================== */
+  :root{ --hdr:56px; --nav:64px; }
+  body{ padding-top:calc(var(--hdr) + env(safe-area-inset-top)); padding-bottom:calc(var(--nav) + env(safe-area-inset-bottom)); }
+  .apphdr{position:fixed;top:0;left:0;right:0;z-index:30;background:var(--ink);color:#fff;padding-top:env(safe-area-inset-top)}
+  .apphdr .in{max-width:560px;margin:0 auto;height:var(--hdr);display:flex;align-items:center;gap:6px;padding:0 16px}
+  .apphdr h1{margin:0;font-size:19px;font-weight:700;letter-spacing:.01em}
+  .apphdr button{width:40px;height:40px;margin-left:-10px;border:0;background:transparent;color:#fff;display:flex;align-items:center;justify-content:center;border-radius:10px}
+  .tabbar{position:fixed;bottom:0;left:0;right:0;z-index:30;background:var(--ink);border-top:1px solid #2A303A;padding-bottom:env(safe-area-inset-bottom)}
+  .tabbar .in{max-width:560px;margin:0 auto;height:var(--nav);display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .tabbar button{border:0;background:transparent;color:#8B95A3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12px;font-weight:600;position:relative}
+  .tabbar button[aria-current="page"]{color:var(--yellow)}
+  .tabbar button[aria-current="page"]::before{content:"";position:absolute;top:0;left:28%;right:28%;height:3px;border-radius:0 0 3px 3px;background:var(--yellow)}
+
+  .wrap{max-width:560px;padding:0}
+  .row{display:block}
+  .col{width:100%;max-width:none;gap:0}
+  .col-title{display:none}
+  .phone{width:100%;max-width:none;height:auto;border-radius:0;box-shadow:none;overflow:visible;
+         min-height:calc(100vh - var(--hdr) - var(--nav));
+         min-height:calc(100dvh - var(--hdr) - var(--nav) - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+  .phone.a > header{display:none}
+  /* Tela de entrada: cabe inteira na tela, sem rolagem */
+  .phone.a{height:calc(100vh - var(--hdr) - var(--nav));
+           height:calc(100dvh - var(--hdr) - var(--nav) - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+           min-height:0;overflow:hidden}
+  .a main{overflow-y:auto;overflow-x:hidden;gap:12px;padding:12px 16px 8px}
+  .a .sec{gap:6px}
+  .a #camposAvulso{gap:12px!important}
+  .a .plate input{font-size:46px;padding:0 0 4px}
+  .a .hint{min-height:16px;font-size:12.5px}
+  .a .txt{height:46px}
+  .a .cores{flex-wrap:nowrap;justify-content:space-between;gap:4px}
+  .a .cor{width:36px;height:36px;flex:0 0 36px}
+  .a .cats{gap:6px}
+  .a .cat{height:68px;gap:4px;font-size:12.5px}
+  .a .cat svg{width:38px;height:26px;flex-shrink:0}
+  .a .cat span{line-height:1.15;text-align:center}
+  .a .plate input{padding-left:54px;padding-right:54px}
+  @media (max-height:680px){
+    .a main{gap:9px;padding-top:8px}
+    .a #camposAvulso{gap:9px!important}
+    .a .plate input{font-size:42px}
+    .a .cat{height:60px}
+    .a .txt{height:42px}
+  }
+  .a footer{padding:10px 16px 12px;background:var(--soft);border-top:1px solid #DADDE2;flex-shrink:0}
+  .a .cta{height:52px;font-size:20px}
+  .toast{z-index:40;bottom:calc(var(--nav) + 16px + env(safe-area-inset-bottom))}
+  .cli-link{border:0;background:transparent;color:#fff;text-decoration:underline;font-size:14px;font-weight:600;padding:6px;align-self:center}
+
+  /* Pátio */
+  .pat{background:var(--soft);padding:16px;display:flex;flex-direction:column;gap:12px;color:var(--ink)}
+  .pat-resumo{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .pat-resumo div{background:#fff;border:1px solid #DADDE2;border-radius:14px;padding:12px 6px;display:flex;flex-direction:column;align-items:center;gap:2px}
+  .pat-resumo b{font-family:'Barlow Condensed',sans-serif;font-size:34px;line-height:1}
+  .pat-resumo span{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+  .pat-lista{display:flex;flex-direction:column;gap:8px}
+  .pat-item{background:#fff;border:1px solid #DADDE2;border-radius:14px;padding:12px 10px;display:flex;gap:10px;align-items:center}
+  .pplate{width:122px;flex-shrink:0;border:2px solid var(--ink);border-radius:6px;overflow:hidden;text-align:center;background:#fff}
+  .pplate .band{font-size:7px;font-weight:700;letter-spacing:.2em;padding:2px 0;min-height:13px;background:var(--blue);color:#fff}
+  .pplate.antiga{background:linear-gradient(180deg,#D3D6D9,#B9BDC2)}
+  .pplate.antiga .band{background:transparent;color:var(--ink);border-bottom:1.5px solid var(--ink)}
+  .pplate .num{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:22px;letter-spacing:.03em;line-height:1.2;white-space:nowrap}
+  .pat-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+  .pat-info b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pat-info span{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pat-tempo{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+  .pat-tempo b{font-family:'Barlow Condensed',sans-serif;font-size:22px;line-height:1}
+  .pat-chip{font-size:10px;font-weight:700;letter-spacing:.08em;padding:3px 8px;border-radius:10px;background:#E8EEFF;color:#1A3A9E}
+  .pat-chip.rot{background:#F1F2F4;color:var(--muted)}
+  .pat-vazio{text-align:center;color:var(--muted);padding:36px 12px;display:flex;flex-direction:column;gap:14px;align-items:center;font-size:15px;line-height:1.45}
+  .pat-vazio .cta{max-width:280px}
+  .pat-nota{font-size:12px;color:var(--muted);text-align:center;margin:0}
+  .pat-limpar{align-self:center;border:0;background:transparent;color:var(--muted);text-decoration:underline;font-size:13px;padding:6px}
+
+  /* Saída */
+  .saida-frame{display:block;width:100%;border:0;background:#fff;
+               height:calc(100vh - var(--hdr) - var(--nav));
+               height:calc(100dvh - var(--hdr) - var(--nav) - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+  .mplate .num{font-size:clamp(28px, 9.6vw, 38px)}
+  .mplate.antiga .num{font-size:clamp(26px, 9vw, 36px)}
+  .pat-tempo b{font-size:20px}
+  .pat-busca{display:flex;gap:8px}
+  .pat-busca .txt{flex:1;min-width:0;height:46px}
+  .pat-busca button{width:46px;height:46px;flex-shrink:0;border-radius:10px;border:1px solid var(--line);background:#fff;color:var(--ink);display:flex;align-items:center;justify-content:center}
+  .pat-busca button.girando svg{animation:gira 0.9s linear infinite}
+  @keyframes gira{to{transform:rotate(360deg)}}
+  .apphdr .hdr-instalar{margin-left:0;width:auto;height:34px;padding:0 12px;gap:6px;border-radius:999px;background:var(--yellow);color:var(--ink);font-size:13px;font-weight:700}
+  .apphdr .hdr-instalar[hidden]{display:none}
+</style>
+</head>
+<body>
+<header class="apphdr">
+  <div class="in">
+    <button type="button" id="hdrBack" aria-label="Voltar ao cupom" hidden><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <h1 id="hdrTitle">Entrada de Veículos</h1>
+    <div class="hdr-acoes" id="hdrAcoes">
+      <button type="button" class="hdr-instalar" id="btnInstalar" hidden><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Instalar</button>
+      <button type="button" class="hdr-sair" id="btnSair" aria-label="Sair da conta"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><path d="M12 2v10"/></svg></button>
+    </div>
+  </div>
+</header>
+
+<nav class="tabbar" aria-label="Menu">
+  <div class="in">
+    <button type="button" data-tab="patio"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9.5 17V7h3.5a3 3 0 0 1 0 6H9.5"/></svg><span>Pátio</span></button>
+    <button type="button" data-tab="entrada"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg><span>Entrada</span></button>
+    <button type="button" data-tab="saida"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span>Saída</span></button>
+  </div>
+</nav>
+
+<!-- ================= LOGIN (tela inicial) ================= -->
+<style>
+  body.deslogado{padding:0!important;background:var(--ink)}
+  body.deslogado .apphdr, body.deslogado .tabbar, body.deslogado .wrap{display:none!important}
+  body:not(.deslogado) .login{display:none}
+  .login{min-height:100vh;min-height:100dvh;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center;
+         padding:calc(24px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom))}
+  .login-in{width:100%;max-width:400px;display:flex;flex-direction:column;gap:22px}
+  .login-marca{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center}
+  .login-marca img{width:76px;height:76px;border-radius:18px}
+  .login-marca h1{margin:4px 0 0;font-size:28px;letter-spacing:.04em}
+  .login-marca p{margin:0;font-size:14px;color:#B9C0CC}
+  .login-card{background:#fff;color:var(--ink);border-radius:20px;padding:22px 18px;display:flex;flex-direction:column;gap:8px}
+  .login-card .lbl{margin-top:6px}
+  .login-inp{width:100%;height:54px;border-radius:12px;border:1px solid var(--line);background:#fff;padding:0 14px;font-size:18px;color:var(--ink);font-family:inherit}
+  .login-inp:focus{outline:2px solid var(--blue);outline-offset:1px}
+  .login-senha{position:relative}
+  .login-senha .login-inp{padding-right:54px}
+  .login-senha button{position:absolute;right:4px;top:4px;width:46px;height:46px;border:0;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center;border-radius:10px}
+  .login-erro{min-height:20px;font-size:14px;font-weight:600;color:var(--red);margin-top:4px}
+  .login-erro.info{color:var(--muted)}
+  .login-card .cta{margin-top:4px}
+  .login-rodape{margin:0;text-align:center;font-size:12px;color:#8B95A3}
+  .apphdr .hdr-acoes{margin-left:auto;display:flex;align-items:center;gap:4px}
+  .apphdr .hdr-sair{margin-left:0;margin-right:-10px}
+</style>
+<div class="login" id="telaLogin">
+  <div class="login-in">
+    <div class="login-marca">
+      <img src="icons/icon-192.png" alt="" width="76" height="76">
+      <h1>GIPE</h1>
+      <p>Entre para registrar entradas e saídas</p>
+    </div>
+    <form class="login-card" id="loginForm" novalidate>
+      <label class="lbl" for="loginUsuario">Login</label>
+      <input class="login-inp" id="loginUsuario" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" required>
+      <label class="lbl" for="loginSenha">Senha</label>
+      <div class="login-senha">
+        <input class="login-inp" id="loginSenha" name="password" type="password" autocomplete="current-password" required>
+        <button type="button" id="loginVer" aria-label="Mostrar senha" aria-pressed="false"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      </div>
+      <div class="login-erro" id="loginErro" role="alert"></div>
+      <button class="cta" id="loginBtn" type="submit">Entrar</button>
+    </form>
+    <p class="login-rodape">GIPE · Estacionamento</p>
+  </div>
+</div>
+<script>
+/* =====================================================================
+   LOGIN · autenticação do operador (o token vem da API, não fica no código)
+   ===================================================================== */
+(function(){
+  var URL_LOGIN = 'https://api.gipepark.com.br/api/v1/autenticacao/login';
+  var CHAVE = 'gipe-auth', CHAVE_LOGIN = 'gipe-ultimo-login';
+  var $ = function(id){ return document.getElementById(id); };
+  var sessao = null, timerExp = null;
+
+  function ler(k){ try { return localStorage.getItem(k); } catch(e){ return null; } }
+  function gravar(k, v){ try { if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch(e){} }
+
+  function payloadJwt(t){
+    try {
+      var p = t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+      p += '==='.slice((p.length + 3) % 4);
+      return JSON.parse(decodeURIComponent(escape(atob(p))));
+    } catch(e){ return {}; }
+  }
+  // Procura o token na resposta (token, accessToken, data.token…) ou qualquer texto no formato JWT
+  function acharToken(d, prof){
+    prof = prof || 0;
+    if (d === null || d === undefined || prof > 4) return null;
+    if (typeof d === 'string'){ var s = d.trim().replace(/^Bearer\s+/i, ''); return /^[\w-]+\.[\w-]+\.[\w-]+$/.test(s) ? s : null; }
+    if (typeof d !== 'object') return null;
+    var pref = ['token', 'accesstoken', 'access_token', 'jwt', 'tokenacesso', 'bearer', 'idtoken'];
+    var chaves = Object.keys(d), i, v;
+    for (i = 0; i < chaves.length; i++) if (pref.indexOf(chaves[i].toLowerCase()) >= 0 && (v = acharToken(d[chaves[i]], prof + 1))) return v;
+    for (i = 0; i < chaves.length; i++) if ((v = acharToken(d[chaves[i]], prof + 1))) return v;
+    return null;
+  }
+  function acharNome(d, prof){
+    prof = prof || 0;
+    if (!d || typeof d !== 'object' || prof > 3) return null;
+    var chaves = Object.keys(d), i;
+    for (i = 0; i < chaves.length; i++){
+      var k = chaves[i].toLowerCase();
+      if ((k === 'nome' || k === 'name' || k === 'nomeusuario' || k === 'nomecompleto') && typeof d[chaves[i]] === 'string' && d[chaves[i]].trim()) return d[chaves[i]].trim();
+    }
+    for (i = 0; i < chaves.length; i++){ var n = acharNome(d[chaves[i]], prof + 1); if (n) return n; }
+    return null;
+  }
+  function mensagem(d){
+    if (!d) return '';
+    if (typeof d === 'string') return d.slice(0, 200);
+    var m = d.mensagem || d.message || d.erro || d.error || d.title || '';
+    var det = d.detail || d.detalhe || '';
+    var lista = d.errors || d.erros || d.notificacoes;
+    if (Array.isArray(lista) && lista.length) det = det || lista.map(function(x){ return typeof x === 'string' ? x : (x.mensagem || x.message || JSON.stringify(x)); }).join(' · ');
+    return [m, det].filter(Boolean).join(' — ').slice(0, 300);
+  }
+  function valida(s){ return !!(s && s.token && (!s.exp || s.exp * 1000 > Date.now() + 60000)); }
+
+  /* ---------- Mostrar app / login ---------- */
+  function mostrarLogin(msg, tipo){
+    document.body.classList.add('deslogado');
+    var e = $('loginErro'); e.textContent = msg || ''; e.className = 'login-erro' + (tipo === 'info' ? ' info' : '');
+    $('loginSenha').value = '';
+    $('loginUsuario').value = ler(CHAVE_LOGIN) || $('loginUsuario').value;
+    window.scrollTo(0, 0);
+  }
+  function mostrarApp(){
+    document.body.classList.remove('deslogado');
+    agendarExpiracao();
+  }
+  function agendarExpiracao(){
+    clearTimeout(timerExp);
+    if (sessao && sessao.exp){
+      var ms = sessao.exp * 1000 - Date.now() - 30000;
+      if (ms > 0 && ms < 2147483000) timerExp = setTimeout(function(){ sair('Sua sessão expirou. Entre novamente.', 'info'); }, ms);
+    }
+  }
+
+  function entrar(s){
+    sessao = s;
+    gravar(CHAVE, JSON.stringify(s));
+    gravar(CHAVE_LOGIN, s.login || '');
+    mostrarApp();
+    if (window.gipeApp && gipeApp.irPara) gipeApp.irPara('entrada');
+    if (window.gipeScan && gipeScan.preparar) gipeScan.preparar();   // pede a câmera só depois do login
+  }
+  function sair(msg, tipo){
+    sessao = null; clearTimeout(timerExp);
+    gravar(CHAVE, null);
+    if (window.gipeSaida) gipeSaida.fechar();
+    if (window.gipeScan && gipeScan.desligar) gipeScan.desligar();
+    mostrarLogin(msg || '', tipo);
+  }
+
+  /* ---------- Formulário ---------- */
+  $('loginVer').addEventListener('click', function(){
+    var s = $('loginSenha'), mostrar = s.type === 'password';
+    s.type = mostrar ? 'text' : 'password';
+    this.setAttribute('aria-pressed', mostrar);
+    this.setAttribute('aria-label', mostrar ? 'Esconder senha' : 'Mostrar senha');
+  });
+
+  $('loginForm').addEventListener('submit', function(ev){
+    ev.preventDefault();
+    var login = $('loginUsuario').value.trim(), senha = $('loginSenha').value;
+    var erro = $('loginErro'), btn = $('loginBtn');
+    if (!login || !senha){ erro.className = 'login-erro'; erro.textContent = 'Informe o login e a senha.'; return; }
+    erro.textContent = ''; btn.disabled = true; btn.textContent = 'Entrando…';
+    fetch(URL_LOGIN, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ login: login, senha: senha })
+    }).then(function(r){
+      return r.text().then(function(txt){
+        var d = null; try { d = txt ? JSON.parse(txt) : null; } catch(e){ d = txt; }
+        if (!r.ok){
+          var m = mensagem(d);
+          throw new Error(m || (r.status === 400 || r.status === 401 || r.status === 403 ? 'Login ou senha inválidos.' : 'Erro no servidor (HTTP ' + r.status + ').'));
+        }
+        var tk = acharToken(d) || acharToken(r.headers.get('Authorization'));
+        if (!tk){ console.warn('[GIPE login] resposta sem token:', d); throw new Error('A API não devolveu o token de acesso.'); }
+        var p = payloadJwt(tk);
+        var nome = acharNome(d) || p['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || p.name || p.unique_name || p.email || login;
+        entrar({ token: tk, exp: p.exp || null, nome: nome, login: login });
+      });
+    }).catch(function(e){
+      erro.className = 'login-erro';
+      erro.textContent = e instanceof TypeError ? 'Sem conexão com o servidor. Verifique a internet e tente de novo.' : e.message;
+    }).then(function(){ btn.disabled = false; btn.textContent = 'Entrar'; });
+  });
+
+  // Botão "Sair" no cabeçalho
+  var bs = $('btnSair');
+  if (bs) bs.addEventListener('click', function(){ if (window.confirm('Sair do GIPE?')) sair('Você saiu do GIPE.', 'info'); });
+
+  /* ---------- API pública usada pelo resto do app ---------- */
+  window.gipeAuth = {
+    token: function(){ return sessao ? sessao.token : ''; },
+    nome: function(){ return sessao ? sessao.nome : ''; },
+    logado: function(){ return valida(sessao); },
+    sair: sair,
+    expirou: function(){ sair('Sua sessão expirou. Entre novamente.', 'info'); }
+  };
+
+  // Ao abrir: se já houver sessão válida guardada, entra direto; senão mostra o login
+  try { sessao = JSON.parse(ler(CHAVE) || 'null'); } catch(e){ sessao = null; }
+  if (valida(sessao)) mostrarApp();
+  else { sessao = null; gravar(CHAVE, null); mostrarLogin(); }
+
+  // ao voltar para o app depois de um tempo, confere se a sessão ainda vale
+  document.addEventListener('visibilitychange', function(){
+    if (!document.hidden && sessao && !valida(sessao)) sair('Sua sessão expirou. Entre novamente.', 'info');
+  });
+})();
+</script>
+
+<div class="wrap">
+
+  <div class="row">
+
+    <!-- ================= PÁTIO ================= -->
+    <div class="col" id="colPatio" hidden>
+      <div class="phone pat">
+        <div class="pat-resumo">
+          <div><b id="patTotal">0</b><span>No pátio</span></div>
+          <div><b id="patRot">0</b><span>Rotativos</span></div>
+          <div><b id="patMen">0</b><span>Mensalistas</span></div>
+        </div>
+        <div class="pat-busca">
+          <input class="txt" id="patBusca" placeholder="Buscar placa" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Buscar placa">
+          <button type="button" id="patAtualizar" aria-label="Atualizar pátio"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></button>
+        </div>
+        <div class="pat-lista" id="patLista"></div>
+        <div class="pat-vazio" id="patVazio" hidden>
+          <svg aria-hidden="true" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9.5 17V7h3.5a3 3 0 0 1 0 6H9.5"/></svg>
+          <span id="patVazioTxt">Nenhum veículo no pátio agora.</span>
+          <button type="button" class="cta" id="patTentar" hidden>Tentar de novo</button>
+          <button type="button" class="cta" id="patIrEntrada">Registrar entrada</button>
+        </div>
+        <p class="pat-nota" id="patNota"></p>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+    <!-- ================= SAÍDA ================= -->
+    <div class="col" id="colSaida" hidden>
+      <style>
+        .sd{--s-bg:#0E1116;--s-card:#151A21;--s-line:#2A313C;--s-line2:#222832;--s-line3:#3A4250;--s-ink:#F2F3F5;--s-muted:#9AA3B0;--s-dim:#6B7380;--s-green:#2FB566;--s-red:#FF6B5E;
+            background:var(--s-bg);color:var(--s-ink);display:flex;flex-direction:column;gap:12px;padding:16px 16px 14px}
+        .sd [hidden]{display:none!important}
+        .sd :focus-visible{outline:2px solid var(--yellow);outline-offset:2px}
+        .sd-scan-wrap{display:flex;justify-content:center}
+        .sd-scan{position:relative;width:min(190px,50vw);aspect-ratio:1;border-radius:24px;overflow:hidden;background:var(--s-card);border:1px solid var(--s-line);padding:0;display:flex;align-items:center;justify-content:center;color:var(--s-muted)}
+        .sd-scan video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+        .sd-c{position:absolute;width:32px;height:32px;border:4px solid var(--yellow);z-index:2;transition:border-color .2s}
+        .sd-c.tl{top:12px;left:12px;border-right:0;border-bottom:0;border-radius:8px 0 0 0}
+        .sd-c.tr{top:12px;right:12px;border-left:0;border-bottom:0;border-radius:0 8px 0 0}
+        .sd-c.bl{bottom:12px;left:12px;border-right:0;border-top:0;border-radius:0 0 0 8px}
+        .sd-c.br{bottom:12px;right:12px;border-left:0;border-top:0;border-radius:0 0 8px 0}
+        .sd-line{position:absolute;left:18px;right:18px;height:2px;background:var(--yellow);box-shadow:0 0 12px var(--yellow);z-index:2;animation:sdscan 2.6s ease-in-out infinite}
+        @keyframes sdscan{0%{top:14px}50%{top:calc(100% - 16px)}100%{top:14px}}
+        .sd-msg{position:relative;z-index:2;font-size:13px;font-weight:600;text-align:center;padding:0 26px;line-height:1.4}
+        .sd-ok{position:absolute;inset:0;z-index:3;display:none;flex-direction:column;align-items:center;justify-content:center;gap:6px;background:rgba(18,34,24,.9);padding:10px;text-align:center}
+        .sd-ok i{width:54px;height:54px;border-radius:27px;background:var(--s-green);color:var(--s-bg);display:flex;align-items:center;justify-content:center}
+        .sd-ok b{font-size:14px;color:var(--s-ink)}
+        .sd-ok small{font-size:11px;color:var(--s-muted)}
+        .sd-scan.lido{border-color:var(--s-green)}
+        .sd-scan.lido .sd-c{border-color:var(--s-green)}
+        .sd-scan.lido .sd-line,.sd-scan.lido .sd-msg{display:none}
+        .sd-scan.lido .sd-ok{display:flex}
+        .sd-scan.falhou .sd-ok{background:rgba(48,20,18,.92)}
+        .sd-scan.falhou .sd-ok i{background:var(--s-red)}
+        .sd-scan.erro .sd-c{border-color:var(--s-red)}
+        .sd-sep{display:flex;align-items:center;gap:10px;color:var(--s-dim);font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+        .sd-sep span{flex:1;height:1px;background:var(--s-line)}
+        .sd-manual{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+        .sd-manual input{height:48px;border-radius:10px;border:1px solid var(--s-line3);background:var(--s-card);padding:0 12px;font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:.06em;color:var(--s-ink);text-transform:uppercase;min-width:0;width:100%}
+        .sd-manual input::placeholder{color:var(--s-dim)}
+        .sd-manual input:focus{outline:2px solid var(--yellow);outline-offset:1px}
+        .sd-manual input:disabled{background:#1A1F27;color:var(--s-muted);border-color:var(--s-line)}
+        .sd-aviso{font-size:13px;font-weight:600;color:var(--s-red);margin-top:-4px}
+        .sd-aviso.info{color:var(--s-muted)}
+        .sd-aviso:empty{display:none}
+        .sd-info{background:var(--s-card);border:1px solid var(--s-line);border-radius:16px;padding:2px 14px;display:flex;flex-direction:column}
+        .sd-info div{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--s-line2);font-size:14px}
+        .sd-info div:last-child{border-bottom:0}
+        .sd-info span{color:var(--s-muted)}
+        .sd-info b{font-weight:700;text-align:right}
+        #sdValor{font-family:'Barlow Condensed',sans-serif;font-size:30px;color:var(--yellow);line-height:1}
+        .sd-pags{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+        .sd-pag{height:64px;border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-size:12px;font-weight:600;padding:0;background:var(--s-card);color:var(--s-ink);border:1px solid var(--s-line)}
+        .sd-pag[aria-pressed="true"]{background:var(--yellow);color:var(--s-bg);border:2px solid var(--yellow)}
+        .sd-pag:disabled{opacity:.4}
+        .sd-spacer{flex:1}
+        .sd-cta{height:56px;border-radius:14px;border:0;background:var(--yellow);color:var(--s-bg);font-size:18px;font-weight:700;width:100%}
+        .sd-cta:disabled{background:#2A313C;color:var(--s-dim);cursor:not-allowed}
+        /* Recibo */
+        .sd-rec-head{display:flex;align-items:center;gap:12px;padding:0 4px}
+        .sd-rec-head div{display:flex;flex-direction:column;gap:2px}
+        .sd-rec-head b{font-size:18px}
+        .sd-rec-head span{font-size:13px;color:var(--s-muted)}
+        .sd-rec-ok{width:40px;height:40px;border-radius:20px;background:var(--s-green);color:var(--s-bg);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+        .sd-rec-card{background:#fff;color:#14181F;border-radius:20px;display:flex;flex-direction:column;overflow:hidden}
+        .sd-rec-top{padding:16px 18px 12px;border-top:8px solid var(--s-green);display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+        .sd-rec-top>div:first-child{display:flex;flex-direction:column;gap:3px}
+        .sd-est-nome{font-size:18px;font-weight:700}
+        .sd-est-end{font-size:12px;color:#4A5260;line-height:1.4}
+        .sd-rec-num{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0}
+        .sd-rec-num span,.sd-rec-total span,.sd-rec-grid span{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#4A5260}
+        .sd-rec-num b{font-family:'Barlow Condensed',sans-serif;font-size:24px;line-height:1}
+        .sd-rec-total{margin:0 18px;background:#F4F5F2;border-radius:14px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+        .sd-rec-total div{display:flex;flex-direction:column;gap:2px}
+        .sd-rec-total b{font-family:'Barlow Condensed',sans-serif;font-size:40px;line-height:1}
+        .sd-rec-total .sd-rec-placa{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700;letter-spacing:.06em;text-transform:none;color:#14181F;border:2px solid #14181F;border-radius:6px;padding:0 8px;white-space:nowrap}
+        .sd-rec-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px;padding:14px 18px 18px}
+        .sd-rec-grid div{display:flex;flex-direction:column;gap:2px}
+        .sd-rec-grid b{font-size:15px}
+      </style>
+
+      <div class="phone sd" id="sdView">
+        <div class="sd-scan-wrap">
+          <button class="sd-scan" id="sdScan" type="button" aria-label="Área de leitura do QR Code">
+            <video id="sdVideo" playsinline muted></video>
+            <span class="sd-c tl"></span><span class="sd-c tr"></span><span class="sd-c bl"></span><span class="sd-c br"></span>
+            <span class="sd-line"></span>
+            <span class="sd-msg" id="sdScanMsg">Toque para ativar a câmera</span>
+            <span class="sd-ok"><i id="sdOkIcon"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></i><b id="sdOkMsg">Ticket encontrado</b><small>Toque para ler outro</small></span>
+          </button>
+        </div>
+
+        <div class="sd-sep"><span></span>sem QR Code<span></span></div>
+
+        <div class="sd-manual">
+          <input id="sdPlaca" aria-label="Placa" placeholder="Placa" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false">
+          <input id="sdTicket" aria-label="Número do ticket" placeholder="Nº ticket" maxlength="10" inputmode="numeric" enterkeyhint="search" autocomplete="off">
+        </div>
+        <div class="sd-aviso" id="sdAviso" role="status"></div>
+
+        <div class="sd-info" aria-live="polite">
+          <div><span>Modelo · Cor</span><b id="sdVeic">—</b></div>
+          <div><span>Categoria</span><b id="sdCat">—</b></div>
+          <div><span>Entrada</span><b id="sdEntrada">—</b></div>
+          <div><span>Permanência</span><b id="sdPerm">—</b></div>
+          <div><span>Valor</span><b id="sdValor">—</b></div>
+        </div>
+
+        <div class="sd-pags" role="group" aria-label="Forma de pagamento">
+          <button class="sd-pag" type="button" data-pag="Dinheiro" aria-pressed="false">
+            <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/><path d="M6 12h.01M18 12h.01"/></svg>Dinheiro</button>
+          <button class="sd-pag" type="button" data-pag="Crédito" aria-pressed="false">
+            <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg>Crédito</button>
+          <button class="sd-pag" type="button" data-pag="Débito" aria-pressed="false">
+            <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M6 10h4M6 14h2M15 12h4M17 10l2 2-2 2"/></svg>Débito</button>
+          <button class="sd-pag" type="button" data-pag="PIX" aria-pressed="false">
+            <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 9-9 9-9-9z"/><path d="M8.5 12h7"/></svg>PIX</button>
+        </div>
+
+        <div class="sd-spacer"></div>
+        <button class="sd-cta" id="sdConfirmar" type="button" disabled>Confirmar Saída</button>
+      </div>
+
+      <!-- Recibo da saída -->
+      <div class="phone sd" id="sdRecibo" hidden>
+        <div class="sd-rec-head">
+          <span class="sd-rec-ok"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+          <div><b>Saída confirmada</b><span id="sdRPagto">Pagamento recebido</span></div>
+        </div>
+        <div class="sd-rec-card">
+          <div class="sd-rec-top">
+            <div><b class="sd-est-nome" id="sdEstNome"></b><span class="sd-est-end" id="sdEstEnd"></span></div>
+            <div class="sd-rec-num"><span>Ticket</span><b id="sdRNum">Nº —</b></div>
+          </div>
+          <div class="sd-rec-total">
+            <div><span>Total pago</span><b id="sdRValor">R$ 0,00</b></div>
+            <span class="sd-rec-placa" id="sdRPlaca">—</span>
+          </div>
+          <div class="sd-rec-grid">
+            <div><span>Entrada</span><b id="sdREnt">—</b></div>
+            <div><span>Saída</span><b id="sdRSai">—</b></div>
+            <div><span>Permanência</span><b id="sdRPerm">—</b></div>
+            <div><span>Veículo</span><b id="sdRVeic">—</b></div>
+          </div>
+        </div>
+        <div class="sd-spacer"></div>
+        <button class="sd-cta" id="sdProxima" type="button">Próxima saída</button>
+      </div>
+    </div>
+    <!-- ================= A ================= -->
+    <div class="col" id="colA" hidden>
+      <div class="phone a">
+        <header>
+          <button class="icon-btn" aria-label="Voltar">
+            <svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+          </button>
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <div style="font-size:20px;font-weight:700">Nova entrada</div>
+            <div style="font-size:13px;color:#B9C0CC"><span id="hoje">Hoje</span> · Vagas livres: 37</div>
+          </div>
+        </header>
+
+        <main>
+          <section class="sec">
+            <div class="plate merco" id="plateBox">
+              <div class="band" id="plateBand">BRASIL</div>
+              <input id="placa" aria-label="Placa" maxlength="8" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABC1D23" inputmode="text">
+              <button type="button" class="plate-cam" id="scanStart" aria-label="Ler placa pela câmera"><svg aria-hidden="true" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg></button>
+              <div class="plate-scan" id="scanBox" hidden>
+                <video id="scanVideo" playsinline muted autoplay></video>
+                <div class="scan-guide" id="scanGuide"></div>
+                <div class="scan-live"><span id="scanLiveTxt">abrindo câmera…</span></div>
+                <div class="scan-tools">
+                  <button type="button" id="scanStop" aria-label="Fechar câmera e digitar"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+                  <button type="button" id="scanTorch" aria-label="Lanterna" hidden><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2h12v5l-3 4v11H9V11L6 7z"/><path d="M12 14v2"/></svg></button>
+                </div>
+              </div>
+            </div>
+            <div class="hint err" id="plateHint"></div>
+          </section>
+
+          <!-- M / N · cartão do mensalista (preenchido pelo script) -->
+          <section class="mcard" id="mCard" hidden>
+            <div class="mtop">
+              <span class="mselo"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/></svg>MENSALISTA</span>
+              <span class="mchip" id="mChip"></span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <span class="mnome" id="mNome"></span>
+              <span class="mplano" id="mPlano"></span>
+            </div>
+            <div class="mval" id="mVal"><span>Válido até</span><b id="mValidade"></b></div>
+            <div class="maviso" id="mAviso" hidden>
+              <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4M12 17h.01"/></svg>
+              <span id="mAvisoTxt"></span>
+            </div>
+          </section>
+
+          <section class="sec" id="mOpcoes" hidden>
+            <span class="lbl">Como registrar esta entrada?</span>
+            <div class="mopcoes">
+              <button type="button" class="mop" data-op="mensal" aria-pressed="false"><b>Liberar como mensalista</b><span>Cliente avisado · cobra a mensalidade depois</span></button>
+              <button type="button" class="mop" data-op="avulso" aria-pressed="false"><b>Cobrar como avulso</b><span id="mOpAvulso">Tarifa normal por hora</span></button>
+            </div>
+          </section>
+
+          <section class="sec" id="mDados" hidden>
+            <div class="mdados">
+              <div><span>Modelo</span><b id="mdModelo"></b></div>
+              <div><span>Cor</span><b><i id="mdCorDot"></i><em id="mdCor" style="font-style:normal"></em></b></div>
+              <div><span>Categoria</span><b id="mdCat"></b></div>
+            </div>
+          </section>
+
+          <div id="camposAvulso" style="display:flex;flex-direction:column;gap:18px">
+            <section class="sec">
+              <label for="modelo" class="lbl">Modelo</label>
+              <input id="modelo" class="txt" placeholder="EX.: ONIX" autocomplete="off">
+            </section>
+
+            <section class="sec">
+              <div class="sec-h"><span class="lbl">Cor</span><span id="corNome" style="font-size:14px;font-weight:600"></span></div>
+              <div class="cores" id="cores"></div>
+            </section>
+
+            <section class="sec">
+              <div class="sec-h"><span class="lbl">Categoria</span><span style="font-size:13px;color:var(--muted)">Define a tarifa</span></div>
+              <div class="cats" id="cats"></div>
+            </section>
+          </div>
+        </main>
+
+        <footer>
+          <button class="cta" id="confirmar" disabled>Confirmar Entrada</button>
+        </footer>
+      </div>
+    </div>
+
+    <!-- ================= D ================= -->
+    <div class="col" id="colD" hidden>
+      <div class="phone d" id="telaD">
+        <div class="empty" id="dEmpty">
+          <svg aria-hidden="true" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-3a2 2 0 0 0 0-4z"/></svg>
+          O cupom aparece aqui depois de confirmar a entrada na tela A.
+        </div>
+        <div id="dBody" hidden style="display:flex;flex-direction:column;gap:12px;flex:1">
+          <div class="ok-head">
+            <span class="ok-dot"><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></span>
+            <span id="dOkTxt">Entrada registrada</span>
+          </div>
+          <div class="ticket" id="dTicketBox">
+            <div class="t-mensal" id="dMensal" hidden><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/></svg>MENSALISTA</div>
+            <div class="t-head">
+              <div class="t-name">[NOME DO ESTACIONAMENTO]</div>
+              <div class="t-addr">[ENDEREÇO] · CNPJ [00.000.000/0001-00]<br>Tel. [(11) 0000-0000]</div>
+            </div>
+            <div class="t-plate-row">
+              <div class="mplate merco" id="dPlate"><div class="band" id="dBand">BRASIL</div><div class="num" id="dPlaca">—</div></div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+                <span class="k">Ticket</span>
+                <span id="dTicket" style="font-family:'Barlow Condensed',sans-serif;font-size:32px;font-weight:700;line-height:1">000000</span>
+              </div>
+            </div>
+            <div class="t-grid">
+              <div><span class="k">Data</span><span class="big" id="dData">—</span></div>
+              <div><span class="k">Entrada</span><span class="big" id="dHora">—</span></div>
+              <div id="dVeicBox"><span class="k">Veículo</span><span class="mid" id="dVeiculo">—</span></div>
+              <div id="dCatBox"><span class="k">Categoria</span><span class="mid" id="dCat">—</span></div>
+              <div id="dCliBox" style="grid-column:span 2" hidden><span class="k">Cliente</span><span class="mid" id="dCliente">—</span></div>
+            </div>
+            <div class="t-mnota" id="dMNota" hidden>
+              <span class="ic"><svg aria-hidden="true" width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></svg></span>
+              <b>Comprovante pelo CPF</b>
+              <span>O mensalista consulta a entrada no celular,<br>informando o CPF em<br><b style="font-size:14px;color:var(--blue)" id="dMLink">seusite.com.br/mensalista</b></span>
+            </div>
+            <div class="perf" id="dPerf"><div class="l"></div><div class="dash"></div><div class="r"></div></div>
+            <div class="t-qr" id="dQrBox">
+              <div class="qr" id="dQR" style="width:180px;height:180px" role="img" aria-label="QR Code do comprovante"></div>
+              <div style="font-size:17px;font-weight:700" id="dQrTit">Leve o comprovante no celular</div>
+              <div style="font-size:14px;color:var(--muted)">Escaneie o código ou fotografe esta tela</div>
+              <div style="font-size:14px;font-weight:600;color:var(--blue)" id="dLink">—</div>
+            </div>
+            <div class="t-foot" id="dFoot"><span id="dFootA">Tarifa: [VALOR]/h</span><span id="dFootB">Operador: [NOME]</span></div>
+          </div>
+          <button class="cta" id="novaEntrada">Nova entrada</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= F ================= -->
+    <div class="col" id="colF" hidden>
+      <div class="phone f" id="telaF">
+        <div class="empty" id="fEmpty">
+          <svg aria-hidden="true" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2"/></svg>
+          <span id="fEmptyTxt">É esta página que o cliente vê ao escanear o QR do cupom.</span>
+        </div>
+        <div class="f-top">
+          <span class="kick" id="fKick" style="font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--yellow)">Comprovante de entrada</span>
+          <span id="fTitulo" style="font-size:22px;font-weight:700">[NOME DO ESTACIONAMENTO]</span>
+          <span class="sub" id="fSub" style="font-size:13px;color:#B9C0CC">[ENDEREÇO]</span>
+        </div>
+        <div class="f-card">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span class="status"><i></i>Veículo no pátio</span>
+            <span style="font-size:13px;color:var(--muted)">Ticket Nº <span id="fTicket">000000</span></span>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 0">
+            <span class="k">Tempo de permanência</span>
+            <span class="elapsed" id="fTempo">0h 00min</span>
+            <span id="fValorAvulso" style="font-size:14px;color:var(--muted)">Valor até agora: <b style="color:var(--ink)">[VALOR]</b></span>
+            <span class="pchip" id="fValorMensal" hidden>Coberto pelo plano · nada a pagar</span>
+          </div>
+          <div class="f-grid">
+            <div><span class="k">Placa</span><span id="fPlaca" style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:.05em">—</span></div>
+            <div><span class="k">Entrada</span><span id="fEntrada" style="font-size:16px;font-weight:700">—</span></div>
+            <div><span class="k" id="fK3">Veículo</span><span id="fVeiculo" style="font-size:15px;font-weight:600">—</span></div>
+            <div><span class="k" id="fK4">Categoria</span><span id="fCat" style="font-size:15px;font-weight:600">—</span></div>
+          </div>
+        </div>
+        <div class="acts" id="fActs">
+          <a href="#" class="act"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Baixar PDF</a>
+          <a href="#" class="act"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>Como chegar</a>
+          <a href="#" class="act"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>Ligar</a>
+        </div>
+        <div class="f-qr"><div class="box"><div class="qr" id="fQR" role="img" aria-label="QR Code de saída"></div></div></div>
+      </div>
+    </div>
+
+    <!-- ================= Q / P · Mensalista ================= -->
+    <div class="col" id="colQ" hidden>
+      <div class="phone q" id="telaQ">
+        <!-- Q: informar CPF -->
+        <div id="qForm" style="display:flex;flex-direction:column;flex:1">
+          <div class="q-top">
+            <span class="kick"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/></svg>ÁREA DO MENSALISTA</span>
+            <span class="tit">Comprovante<br>de entrada</span>
+            <span class="sub">[NOME DO ESTACIONAMENTO]</span>
+          </div>
+          <form class="q-form" id="qFormEl" novalidate>
+            <label class="lbl" for="qCpf" style="text-align:center">Informe seu CPF</label>
+            <input class="inp" id="qCpf" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00">
+            <div class="q-msg" id="qMsg"></div>
+            <button class="q-btn" id="qBtn" type="submit" disabled>Ver comprovante</button>
+            <div style="flex:1"></div>
+          </form>
+        </div>
+
+        <!-- P: comprovante do mensalista -->
+        <div id="qP" hidden style="display:flex;flex-direction:column;flex:1">
+          <div class="f-top" style="background:var(--blue);padding-bottom:54px">
+            <span style="display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;letter-spacing:.12em"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M9 16l2 2 4-4"/></svg>MENSALISTA · COMPROVANTE DE ENTRADA</span>
+            <span id="pOla" style="font-size:22px;font-weight:700">Olá</span>
+            <span style="font-size:13px;color:#D6E0FF">[NOME DO ESTACIONAMENTO] · [ENDEREÇO]</span>
+            <button class="q-out" id="pSair" type="button">Consultar outro CPF</button>
+          </div>
+          <div class="f-card">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <span class="status"><i></i>Veículo no pátio</span>
+              <span style="font-size:13px;color:var(--muted)">Ticket Nº <span id="pTicket">000000</span></span>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:2px 0">
+              <span class="k">Tempo de permanência</span>
+              <span class="elapsed" id="pTempo" style="font-size:52px">0h 00min</span>
+              <span class="pchip" id="pChip">Coberto pelo plano · nada a pagar</span>
+            </div>
+            <div class="f-grid">
+              <div><span class="k">Placa</span><span id="pPlaca" style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;letter-spacing:.05em">—</span></div>
+              <div><span class="k">Entrada</span><span id="pEntrada" style="font-size:16px;font-weight:700">—</span></div>
+              <div><span class="k">Plano</span><span id="pPlano" style="font-size:15px;font-weight:600">—</span></div>
+              <div><span class="k" id="pKVal">Próximo vencimento</span><span id="pValidade" style="font-size:15px;font-weight:600">—</span></div>
+            </div>
+          </div>
+          <div class="p-acts">
+            <button class="p-act" id="pPdf" type="button"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Baixar PDF</button>
+            <a class="p-act" id="pLigar" href="#"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"/></svg>Ligar</a>
+          </div>
+          <div style="display:flex;justify-content:center;padding:12px 16px 16px">
+            <div style="background:#fff;border-radius:16px;padding:10px;border:1px solid #DADDE2">
+              <div class="qr" id="pQR" role="img" aria-label="QR Code de saída" style="width:168px;height:168px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+  var DOMINIO = 'https://seusite.com.br/c/';
+
+  // Dados do estacionamento (comprovante do mensalista, PDF e botão Ligar)
+  var ESTAC = { nome:'[NOME DO ESTACIONAMENTO]', endereco:'[ENDEREÇO]', telefone:'+5511000000000', telefoneTxt:'[(11) 0000-0000]' };
+
+  /* ---- Faixas de séries de letras por UF (Denatran / Senatran) ----
+     Valem para as 3 primeiras letras das placas antigas (ABC-1234) e Mercosul (ABC1D23).
+     As letras indicam a UF. */
+  var FAIXAS = {
+    PR:'AAA-BEZ RHA-RHZ SDP-SFO TAI-TBZ UAS-UCZ',
+    SP:'BFA-GKI QSN-QSZ SSR-SWZ TIO-TMJ UDA-UGV',
+    MG:'GKJ-HOK NXX-NYG OLO-OMH OOV-ORC OWH-OXK PUA-PZZ QMQ-QQZ QUA-QUZ QWR-QXZ RFA-RGD RMD-RNZ RTA-RVZ SHB-SJI SYA-SYZ UAI TCA-TEZ TWY-UAH',
+    MA:'HOL-HQE NHA-NHT NMP-NNI NWS-NXQ OIR-OJQ OXQ-OXZ PSA-PTZ ROA-ROZ SMM-SNJ UJM-UJZ',
+    MS:'HQF-HTW NRF-NSD OOG-OOU QAA-QAZ REW-REZ RWA-RWJ SLW-SML',
+    CE:'HTX-HZA NQL-NRE NUM-NVF OCB-OCU OHX-OIQ ORN-OSV OZA PMA-POZ RIA-RIL SAN-SAU SAV-SBV THN-TIN',
+    SE:'HZB-IAP NVG-NVN OEJ-OES OZB QKN-QKZ QMA-QMP RQW-RRH TNU-TOD',
+    RS:'IAQ-JDO TQO-TRW',
+    DF:'JDP-JKR OVM-OVV OZW-PBZ REC-REV SGN-SGZ SSF-SSQ TUY-TUZ TVK UIV-UJL',
+    BA:'JKS-JSZ NTD-NTW NYH-NZZ OKI-OLG OUF-OVD OZC-OZV PJA-PLZ QTU-QTZ RCO-RDR RPA-RPZ SJJ-SKT TGR-THH TMK-TNG',
+    PA:'JTA-JWE NSE-NTC OBT-OCA OFI-OFW OSW-OTZ QDA-QEZ QVA-QVZ RWK-RXJ SZA-SZZ TVL-TWK',
+    AM:'JWF-JXY NOI-NPB OAA-OAO OXM PHA-PHZ QZA-QZZ TAA-TAH TRX-TSO',
+    MT:'JXZ-KAU NIY-NJW NPC-NPQ NTX-NUG OAP-OBS QBA-QCZ RAK-RAZ RRI-RRZ SPC-SQP',
+    GO:'KAV-KFC NFC-NGZ NJX-NLU NVO-NWR OGH-OHA OMI-OOF PQA-PRZ QTN-QTS RBK-RCN SBW-SDO TFA-TGN',
+    PE:'KFD-KME NXU-NXW OYL-OYZ PCA-PED PEE-PFQ PFR-PGK PGL-PGU PGV-PGZ QYA-QYZ RZE-RZZ SNK-SPB UHJ-UII',
+    RJ:'KMF-LVE RIO RIP-RKV SQV-SSE TTA-TUX',
+    PI:'LVF-LWQ NHU-NIX ODU-OEI OUA-OUE OVW-OVY PIA-PIZ QRN-QRZ RSG-RST SLM-SLV UKF-UKN',
+    SC:'LWR-MMM OKD-OKH QHA-QJZ QTK-QTM RAA-RAJ RDS-REB RKW-RLP RXK-RYZ SXA-SXZ TPI-TQE',
+    PB:'MMN-MOW NPR-NQK OET-OFH OFX-OGG OXO QFA-QFZ QSA-QSM RLQ-RLZ SKU-SLF TOT-TPH',
+    ES:'MOX-MTZ OCV-ODT OVE-OVF OVH-OVL OYD-OYK PPA-PPZ QRB-QRM RBA-RBJ RQM-RQV SFP-SGM TOE-TOS',
+    AL:'MUA-MVK NLV-NMO OHB-OHK ORD-ORM OXN QLA-QLM QTT QWG-QWL RGO-RGU RGV-RGZ SAA-SAJ TNH-TNT',
+    TO:'MVL-MXG OLH-OLN OYA-OYC QKA-QKM QWA-QWF RIM-RIN RMA-RMC RSA-RSF TVA-TVD',
+    RN:'MXH-MZM NNJ-NOH OJR-OKC OVZ-OWG QGA-QGZ RGE-RGM RGN RQA-RQL TSP-TSZ',
+    AC:'MZN-NAG NXR-NXT OVG OXP QLU-QLZ QWM-QWQ SHA SQQ-SQU',
+    RR:'NAH-NBA NUH-NUL RZA-RZD',
+    RO:'NBB-NEH OHL-OHW OXL QRA QTA-QTJ RSU-RSZ SLG-SLL THI-THM UAJ-UAR',
+    AP:'NEI-NFB QLN-QLT SAK-SAM TGO-TGQ UKO-UKQ'
+  };
+  var UFS = {
+    AC:['Acre','Rio Branco'], AL:['Alagoas','Maceió'], AP:['Amapá','Macapá'], AM:['Amazonas','Manaus'],
+    BA:['Bahia','Salvador'], CE:['Ceará','Fortaleza'], DF:['Distrito Federal','Brasília'], ES:['Espírito Santo','Vitória'],
+    GO:['Goiás','Goiânia'], MA:['Maranhão','São Luís'], MT:['Mato Grosso','Cuiabá'], MS:['Mato Grosso do Sul','Campo Grande'],
+    MG:['Minas Gerais','Belo Horizonte'], PA:['Pará','Belém'], PB:['Paraíba','João Pessoa'], PR:['Paraná','Curitiba'],
+    PE:['Pernambuco','Recife'], PI:['Piauí','Teresina'], RJ:['Rio de Janeiro','Rio de Janeiro'], RN:['Rio Grande do Norte','Natal'],
+    RS:['Rio Grande do Sul','Porto Alegre'], RO:['Rondônia','Porto Velho'], RR:['Roraima','Boa Vista'], SC:['Santa Catarina','Florianópolis'],
+    SP:['São Paulo','São Paulo'], SE:['Sergipe','Aracaju'], TO:['Tocantins','Palmas']
+  };
+
+  function idx3(t){ return (t.charCodeAt(0)-65)*676 + (t.charCodeAt(1)-65)*26 + (t.charCodeAt(2)-65); }
+  var TABELA = [];
+  Object.keys(FAIXAS).forEach(function(uf){
+    FAIXAS[uf].split(' ').forEach(function(f){
+      var p = f.split('-'); TABELA.push([idx3(p[0]), idx3(p[1] || p[0]), uf]);
+    });
+  });
+  function ufDaPlaca(s){
+    if (!/^[A-Z]{3}/.test(s)) return null;
+    var i = idx3(s.slice(0,3));
+    for (var k = 0; k < TABELA.length; k++) if (i >= TABELA[k][0] && i <= TABELA[k][1]) return TABELA[k][2];
+    return null;
+  }
+
+
+  var CORES = [['BRANCO','#FFFFFF'],['PRETO','#1A1A1A'],['PRATA','#C3C7CC'],['CINZA','#6E747C'],['VERMELHO','#B3261E'],['AZUL','#1F4FD6'],['VERDE','#2E7D4F'],['BEGE','#D8C7A3']];
+  var CATS = [
+    ['moto','Moto','<circle cx="10" cy="22" r="6"/><circle cx="38" cy="22" r="6"/><path d="M10 22l9-10h10l9 10M22 12l-3-5h-4M29 12l4-5h5"/>'],
+    ['peq','Carro pequeno','<path d="M12 23h-2v-6l5-7h14l6 7h3v6h-2"/><circle cx="15" cy="23" r="3"/><circle cx="33" cy="23" r="3"/><path d="M18 23h12"/>'],
+    ['med','Carro médio','<path d="M8 23h-2v-6l4-1 6-6h14l7 6h5v7h-2"/><circle cx="12" cy="23" r="3"/><circle cx="36" cy="23" r="3"/><path d="M15 23h18"/>'],
+    ['gde','Carro grande','<path d="M6 23h-3v-8l5-1 4-6h22l6 6h4v9h-3"/><circle cx="10" cy="23" r="3"/><circle cx="38" cy="23" r="3"/><path d="M13 23h22"/>'],
+    ['cam','Caminhonete','<path d="M7 23h-4v-7l5-1 4-7h12v8h21v7h-4"/><circle cx="11" cy="23" r="3"/><circle cx="37" cy="23" r="3"/><path d="M14 23h20"/>'],
+    ['tru','Caminhão','<path d="M31 22H3V6h28v16zM31 12h8l6 6v4h-4"/><circle cx="10" cy="24" r="3"/><circle cx="37" cy="24" r="3"/>']
+  ];
+
+  var estado = { cor:null, cat:null, tipo:null, placa:'', uf:null };
+  var $ = function(id){ return document.getElementById(id); };
+
+  function pad(n){ return String(n).padStart(2,'0'); }
+  var agora = new Date();
+  $('hoje').textContent = 'Hoje · ' + pad(agora.getHours()) + ':' + pad(agora.getMinutes());
+
+  /* ---- Cores ---- */
+  function selCor(nome){
+    estado.cor = nome || null;
+    document.querySelectorAll('.cor').forEach(function(x){ x.setAttribute('aria-pressed', x.dataset.cor === nome); });
+    $('corNome').textContent = nome || '';
+  }
+  CORES.forEach(function(c){
+    var b = document.createElement('button');
+    b.className = 'cor'; b.type = 'button'; b.dataset.cor = c[0];
+    b.style.background = c[1];
+    b.setAttribute('aria-label', c[0]);
+    b.setAttribute('aria-pressed', c[0] === estado.cor);
+    b.onclick = function(){ selCor(c[0]); };
+    $('cores').appendChild(b);
+  });
+
+  /* ---- Categorias ---- */
+  function selCat(id){
+    estado.cat = id || null;
+    document.querySelectorAll('.cat').forEach(function(x){ x.setAttribute('aria-pressed', x.dataset.cat === id); });
+    atualizarBotao();
+  }
+  CATS.forEach(function(c){
+    var b = document.createElement('button');
+    b.className = 'cat'; b.type = 'button'; b.dataset.cat = c[0];
+    b.setAttribute('aria-pressed', c[0] === estado.cat);
+    b.innerHTML = '<svg aria-hidden="true" width="44" height="30" viewBox="0 0 48 32" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">' + c[2] + '</svg><span>' + c[1] + '</span>';
+    b.onclick = function(){ selCat(c[0]); };
+    $('cats').appendChild(b);
+  });
+  function nomeCat(id){ return CATS.filter(function(c){ return c[0] === id; })[0][1]; }
+  function hexCor(nome){ var c = CORES.filter(function(x){ return x[0] === nome; })[0]; return c ? c[1] : '#ccc'; }
+
+  /* =====================================================================
+     MENSALISTAS — cadastro de DEMONSTRAÇÃO.
+     No app real, troque buscarMensalista() por uma consulta à sua API.
+     ===================================================================== */
+  var DIA = 86400000;
+  var MENSALISTAS = [
+    { cpf:'52998224725', placas:['BRA2E19'], nome:'MARIA SILVA (EXEMPLO)', plano:'Plano Mensal · Diurno (07h–19h)', planoCurto:'Mensal · Diurno',
+      modelo:'ONIX', cor:'PRATA', cat:'med', vencimento: Date.now() + 19*DIA, mensalidade:'[VALOR]' },
+    { cpf:'11144477735', placas:['ABC1234'], nome:'CARLOS LIMA (EXEMPLO)', plano:'Plano Mensal · 24h', planoCurto:'Mensal · 24h',
+      modelo:'HB20', cor:'BRANCO', cat:'peq', vencimento: Date.now() + 2*DIA, mensalidade:'[VALOR]' },
+    { cpf:'12345678909', placas:['FTR8A41'], nome:'JOÃO PEREIRA (EXEMPLO)', plano:'Plano Mensal · 24h', planoCurto:'Mensal · 24h',
+      modelo:'HILUX', cor:'PRETO', cat:'cam', vencimento: Date.now() - 3*DIA, mensalidade:'[VALOR]' }
+  ];
+  var AVISO_DIAS = 3;   // a partir de quantos dias antes do vencimento mostra "Vence em X dias"
+
+  function buscarMensalista(placa){
+    return MENSALISTAS.filter(function(m){ return m.placas.indexOf(placa) >= 0; })[0] || null;
+  }
+  function dataBR(ms){ var d = new Date(ms); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear(); }
+  var MESES = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+
+  var mensal = null;        // mensalista encontrado
+  var escolha = null;       // N: 'mensal' | 'avulso'
+
+  function diasAte(ms){ return Math.ceil((ms - Date.now()) / DIA); }
+
+  function mostrarMensal(m){
+    mensal = m; escolha = null;
+    var card = $('mCard');
+    if (!m){
+      card.hidden = true; $('mOpcoes').hidden = true; $('mDados').hidden = true;
+      $('camposAvulso').hidden = false;
+      return;
+    }
+    var dias = diasAte(m.vencimento), vencido = dias < 0;
+    card.hidden = false;
+    card.classList.toggle('venc', vencido);
+    $('mNome').textContent = m.nome;
+    $('mPlano').textContent = vencido ? (m.planoCurto + ' · ' + m.modelo + ' · ' + m.cor) : m.plano;
+    var chip = $('mChip');
+    if (vencido){
+      chip.className = 'mchip venc';
+      chip.textContent = 'Vencida há ' + (-dias) + (dias === -1 ? ' dia' : ' dias');
+      $('mVal').hidden = true; $('mAviso').hidden = false;
+      var dv = new Date(m.vencimento);
+      $('mAvisoTxt').innerHTML = '<b>Mensalidade de ' + MESES[dv.getMonth()] + ' em aberto</b><br>Venceu em ' + dataBR(m.vencimento) + ' · ' + m.mensalidade;
+    } else {
+      chip.className = 'mchip ' + (dias <= AVISO_DIAS ? 'alerta' : 'ok');
+      chip.textContent = dias <= AVISO_DIAS ? (dias === 0 ? 'Vence hoje' : 'Vence em ' + dias + (dias === 1 ? ' dia' : ' dias')) : 'Em dia';
+      $('mVal').hidden = false; $('mAviso').hidden = true;
+      $('mValidade').textContent = dataBR(m.vencimento);
+    }
+    $('mOpcoes').hidden = !vencido;
+    $('mOpAvulso').textContent = 'Tarifa normal por hora · ' + nomeCat(m.cat);
+    document.querySelectorAll('.mop').forEach(function(x){ x.setAttribute('aria-pressed','false'); });
+
+    // Dados do veículo vindos do cadastro
+    $('modelo').value = m.modelo; selCor(m.cor); selCat(m.cat);
+    $('mdModelo').textContent = m.modelo;
+    $('mdCor').textContent = m.cor; $('mdCorDot').style.background = hexCor(m.cor);
+    $('mdCat').textContent = nomeCat(m.cat);
+    $('mDados').hidden = false; $('camposAvulso').hidden = true;
+  }
+
+  document.querySelectorAll('.mop').forEach(function(b){
+    b.addEventListener('click', function(){
+      escolha = b.dataset.op;
+      document.querySelectorAll('.mop').forEach(function(x){ x.setAttribute('aria-pressed', x === b); });
+      atualizarBotao();
+    });
+  });
+
+  var placaValida = false;
+  function atualizarBotao(){
+    var vencido = mensal && diasAte(mensal.vencimento) < 0;
+    $('confirmar').disabled = !placaValida || !estado.cat || (vencido && !escolha);
+  }
+  function modoEntrada(){
+    if (!mensal) return 'avulso';
+    if (diasAte(mensal.vencimento) < 0) return escolha === 'mensal' ? 'mensal' : 'avulso';
+    return 'mensal';
+  }
+
+
+  /* =====================================================================
+     API GIPE — consulta do veículo e registro da entrada
+     ===================================================================== */
+  var API = {
+    base:  'https://api.gipepark.com.br/api/v1',
+    // O token vem do login do operador (tela de login)
+    get token(){ return (window.gipeAuth && window.gipeAuth.token()) || ''; },
+    // Código numérico de cada categoria na API (ajuste se a numeração da API for outra)
+    categoria: { moto:1, peq:2, med:3, gde:4, cam:5, tru:6 }
+  };
+
+  function apiFetch(caminho, opcoes){
+    opcoes = opcoes || {};
+    opcoes.headers = Object.assign({ 'Authorization': 'Bearer ' + API.token, 'Accept': 'application/json' }, opcoes.headers || {});
+    return fetch(API.base + caminho, opcoes).then(function(r){
+      return r.text().then(function(txt){
+        var dados = null; try { dados = txt ? JSON.parse(txt) : null; } catch(e){ dados = txt; }
+        if (r.status === 401 && window.gipeAuth) window.gipeAuth.expirou();
+        if (!r.ok){
+          console.warn('[GIPE API] erro', r.status, caminho, 'enviado:', opcoes.body || '(nada)', 'resposta:', dados);
+          var err = new Error((mensagemApi(dados) || 'erro') + ' (HTTP ' + r.status + ')');
+          err.status = r.status; err.dados = dados; throw err;
+        }
+        return dados;
+      });
+    });
+  }
+  // Junta a mensagem principal da API com os detalhes (motivo real do erro)
+  function mensagemApi(d){
+    if (!d) return '';
+    if (typeof d === 'string') return d.slice(0, 300);
+    var partes = [];
+    function add(x){
+      if (x === undefined || x === null || x === '') return;
+      if (typeof x === 'object') x = x.mensagem || x.message || x.errorMessage || x.descricao || x.detail || JSON.stringify(x);
+      x = String(x);
+      if (partes.indexOf(x) < 0) partes.push(x);
+    }
+    add(d.mensagem); add(d.message); add(d.erro); add(d.error); add(d.title);
+    add(d.detail); add(d.detalhe); add(d.detalhes);
+    var lista = d.errors || d.erros || d.notificacoes || d.notifications || d.validacoes || d.validationErrors;
+    if (Array.isArray(lista)) lista.forEach(add);
+    else if (lista && typeof lista === 'object') Object.keys(lista).forEach(function(k){
+      var v = lista[k]; add(k + ': ' + (Array.isArray(v) ? v.join(', ') : (typeof v === 'object' ? JSON.stringify(v) : v)));
+    });
+    if (!partes.length) add(JSON.stringify(d).slice(0, 300));
+    return partes.join(' — ').slice(0, 400);
+  }
+  function erroRede(e){
+    if (e && e.status === 401) return 'sessão expirada — entre novamente (401)';
+    if (e && e.status === 403) return 'sem permissão (403)';
+    if (e && e.status) return e.message;
+    return 'sem conexão com a API (rede ou CORS)';
+  }
+
+  // Procura um campo pelo nome (sem diferenciar maiúsculas), também dentro de data/result/veiculo/value
+  function campo(obj, nomes){
+    if (!obj || typeof obj !== 'object') return undefined;
+    var fontes = [obj, obj.data, obj.result, obj.resultado, obj.veiculo, obj.value, obj.dados];
+    for (var f = 0; f < fontes.length; f++){
+      var o = fontes[f]; if (!o || typeof o !== 'object') continue;
+      var chaves = Object.keys(o);
+      for (var n = 0; n < nomes.length; n++){
+        for (var k = 0; k < chaves.length; k++){
+          if (chaves[k].toLowerCase() === nomes[n].toLowerCase() && o[chaves[k]] !== null && o[chaves[k]] !== '') return o[chaves[k]];
+        }
+      }
+    }
+    return undefined;
+  }
+  function semAcento(s){ return String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase().trim(); }
+  function tituloCase(s){ return String(s || '').toLowerCase().replace(/(^|\s)\S/g, function(c){ return c.toUpperCase(); }); }
+
+  function catDaApi(v){
+    if (v === undefined) return null;
+    if (typeof v === 'object') v = campo(v, ['id','codigo','valor','descricao','nome']);
+    var num = Number(v);
+    if (!isNaN(num)){
+      for (var id in API.categoria) if (API.categoria[id] === num) return id;
+      return null;
+    }
+    var t = semAcento(v);
+    var porNome = CATS.filter(function(c){ return semAcento(c[1]) === t; })[0];
+    if (porNome) return porNome[0];
+    if (/MOTO/.test(t)) return 'moto';
+    if (/CAMINHONETE|PICAPE|PICK|SUV|UTILIT/.test(t)) return 'cam';
+    if (/CAMINH/.test(t)) return 'tru';
+    if (/GRANDE/.test(t)) return 'gde';
+    if (/PEQUENO/.test(t)) return 'peq';
+    if (/MEDIO|CARRO|PASSEIO|AUTOMOVEL/.test(t)) return 'med';
+    return null;
+  }
+  function corDaApi(v){
+    if (v === undefined) return null;
+    if (typeof v === 'object') v = campo(v, ['nome','descricao','cor']);
+    var t = semAcento(v);
+    var c = CORES.filter(function(x){ return semAcento(x[0]) === t; })[0];
+    if (c) return c[0];
+    if (/BRANC/.test(t)) return 'BRANCO'; if (/PRET/.test(t)) return 'PRETO';
+    if (/PRAT/.test(t)) return 'PRATA'; if (/CINZ|GRAFITE|CHUMBO/.test(t)) return 'CINZA';
+    if (/VERMELH|VINHO/.test(t)) return 'VERMELHO'; if (/AZUL/.test(t)) return 'AZUL';
+    if (/VERDE/.test(t)) return 'VERDE'; if (/BEGE|DOURAD|MARROM|CHAMPAGNE/.test(t)) return 'BEGE';
+    return t || null;                    // cor fora da paleta: guarda o nome que veio da API
+  }
+
+  window.gipeApi = {
+    get: function(caminho){ return apiFetch(caminho); },
+    post: function(caminho, corpo){ return apiFetch(caminho, { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(corpo) }); },
+    campo: campo, catDaApi: catDaApi, erroRede: erroRede,
+    nomeCat: function(id){ try { return nomeCat(id); } catch(e){ return ''; } }
+  };
+
+  /* ---- Consulta do veículo ao digitar/ler a placa ---- */
+  var consultaAtual = null;
+  function hintPlaca(cls, txt){ var h = $('plateHint'); h.className = 'hint ' + cls; h.textContent = txt; }
+  function consultarVeiculo(placa){
+    consultaAtual = placa;
+    if (!placa) return;
+    hintPlaca('info', 'Consultando dados do veículo…');
+    apiFetch('/veiculo/' + encodeURIComponent(placa)).then(function(d){
+      if (consultaAtual !== placa) return;                 // placa mudou durante a consulta
+      var modelo = campo(d, ['modelo','model','descricaoModelo','modeloVeiculo','nomeModelo']);
+      if (modelo && typeof modelo === 'object') modelo = campo(modelo, ['nome','descricao','modelo']);
+      var marca  = campo(d, ['marca','fabricante']);
+      var cor    = corDaApi(campo(d, ['cor','color','corVeiculo','descricaoCor']));
+      var cat    = catDaApi(campo(d, ['categoria','categoriaId','idCategoria','tipo','tipoVeiculo','category']));
+      if (!modelo && !cor && !cat){ hintPlaca('info', 'Veículo sem cadastro — preencha modelo, cor e categoria.'); return; }
+      if (!mensal){                                        // mensalista usa os dados do cadastro dele
+        if (modelo) $('modelo').value = String(modelo).toUpperCase();
+        if (cor) selCor(cor);
+        if (cat) selCat(cat);
+      }
+      hintPlaca('ok', 'Dados do veículo encontrados' + (marca && modelo ? ' · ' + String(marca).toUpperCase() + ' ' + String(modelo).toUpperCase() : '') + '.');
+    }).catch(function(e){
+      if (consultaAtual !== placa) return;
+      if (e.status === 404) hintPlaca('info', 'Veículo sem cadastro — preencha modelo, cor e categoria.');
+      else hintPlaca('err', 'Não foi possível consultar o veículo: ' + erroRede(e) + '.');
+    });
+  }
+
+  /* ---- Placa: detecção Mercosul x antiga ----
+     Mercosul: ABC1D23  (5º caractere é letra)
+     Antiga:   ABC1234  (5º caractere é número) -> exibida como ABC-1234 em placa cinza */
+  var RE_MERCO  = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/;
+  var RE_ANTIGA = /^[A-Z]{3}[0-9]{4}$/;
+
+  function detectar(s){
+    if (s.length >= 5) return /[0-9]/.test(s[4]) ? 'antiga' : 'merco';
+    return null;
+  }
+  function formatar(s, tipo){
+    return (tipo === 'antiga' && s.length > 3) ? s.slice(0,3) + '-' + s.slice(3) : s;
+  }
+
+  function textoFaixa(){
+    if (!estado.uf) return '—';
+    return UFS[estado.uf][0].toUpperCase() + ' · ' + estado.uf;
+  }
+  function aplicarVisual(el, band, tipo){
+    el.classList.toggle('antiga', tipo === 'antiga');
+    el.classList.toggle('merco', tipo !== 'antiga');
+    band.textContent = tipo === 'antiga' ? textoFaixa() : 'BRASIL';
+  }
+
+  var inp = $('placa');
+  inp.addEventListener('input', function(){
+    var s = inp.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,7);
+    var tipo = detectar(s);
+    var uf = ufDaPlaca(s);
+    estado.placa = s; estado.tipo = tipo; estado.uf = uf;
+    inp.value = formatar(s, tipo);
+    aplicarVisual($('plateBox'), $('plateBand'), tipo);
+    inp.placeholder = tipo === 'antiga' ? 'ABC-1234' : 'ABC1D23';
+
+    var h = $('plateHint');
+    var valida = RE_MERCO.test(s) || RE_ANTIGA.test(s);
+    h.className = 'hint err';
+    if (s.length === 7 && !valida){ h.textContent = 'Placa inválida — confira letras e números'; }
+    else if (s.length === 7 && !uf){ h.textContent = 'Atenção: série não consta na tabela de UFs — confira a placa'; }
+    else { h.textContent = ''; }
+    placaValida = valida;
+    var m = valida ? buscarMensalista(s) : null;
+    if (m !== mensal) mostrarMensal(m);
+    atualizarBotao();
+    // Placa completa e válida → busca modelo, cor e categoria na API
+    if (valida && s !== consultaAtual) consultarVeiculo(s);
+    else if (!valida) consultaAtual = null;
+  });
+
+
+  $('modelo').addEventListener('input', function(e){
+    var p = e.target.selectionStart;
+    e.target.value = e.target.value.toUpperCase();
+    e.target.setSelectionRange(p,p);
+  });
+
+  /* ---- QR ---- */
+  function desenharQR(el, texto){
+    el.innerHTML = '';
+    if (typeof qrcode !== 'function'){ el.textContent = texto; el.style.fontSize='12px'; return; }
+    var q = qrcode(0, texto.length > 120 ? 'L' : 'M'); q.addData(texto); q.make();   // token longo: QR menos denso
+    el.innerHTML = q.createSvgTag({ cellSize: 6, margin: 0, scalable: true });
+  }
+
+  function codigo(){
+    var a = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', s = '';
+    var r = new Uint32Array(6); (window.crypto || window.msCrypto).getRandomValues(r);
+    for (var i=0;i<6;i++) s += a[r[i] % a.length];
+    return s;
+  }
+
+  var ticketSeq = 481, entradaEm = null, timer = null;
+
+  function tempo(){
+    if (!entradaEm) return;
+    var min = Math.floor((Date.now() - entradaEm) / 60000);
+    $('fTempo').textContent = Math.floor(min/60) + 'h ' + pad(min % 60) + 'min';
+  }
+
+  // QR do cupom = link do comprovante do cliente com o token devolvido em POST /patio/entrada
+  // (o cliente abre o link no celular; a tela de Saída também lê esse link)
+  // a página do cliente fica na pasta c/ ao lado da pasta app/ (funciona na raiz do domínio ou em subpasta, ex.: GitHub Pages)
+  var URL_COMPROVANTE = (/^https?:$/.test(location.protocol) ? new URL('../c/', location.href).href : 'https://evertonoliveira30br.github.io/gipe-iu-mobile-teste/c/') + '?t=';
+  function registrarNaTela(resp){
+    var d = new Date(); entradaEm = d.getTime();
+    var tokenApi = campo(resp, ['token','tokenTicket','tokenSaida','tokenEntrada','qrCode','qrcode']);
+    if (tokenApi !== undefined && typeof tokenApi === 'object') tokenApi = undefined;
+    if (!tokenApi) console.warn('[GIPE] patio/entrada não devolveu "token" — o QR usa um código local', resp);
+    var numApi = campo(resp, ['codigoTicket','numeroTicket','ticket','codigo']);
+    var cod = tokenApi ? String(tokenApi) : codigo(), link = DOMINIO + cod;
+    var num = (numApi !== undefined && typeof numApi !== 'object') ? String(numApi) : String(++ticketSeq).padStart(6,'0');
+    var placaFmt = formatar(estado.placa, estado.tipo);
+    var modelo = ($('modelo').value || '').trim().toUpperCase();
+    var veic = [modelo, estado.cor].filter(Boolean).join(' · ') || '—';
+    var cat = nomeCat(estado.cat);
+    var data = pad(d.getDate()) + '/' + pad(d.getMonth()+1) + '/' + d.getFullYear();
+    var hora = pad(d.getHours()) + ':' + pad(d.getMinutes());
+    var ehMensal = modoEntrada() === 'mensal';
+    var m = mensal;
+
+    // O / D – visual do cupom
+    $('dOkTxt').textContent = ehMensal ? 'Entrada registrada · Mensalista' : 'Entrada registrada';
+    $('dMensal').hidden = !ehMensal;
+    $('dTicketBox').classList.toggle('mensal', ehMensal);
+    $('dCatBox').hidden = ehMensal; $('dVeicBox').hidden = ehMensal;
+    $('dCliBox').hidden = !ehMensal;
+    if (ehMensal) $('dCliente').textContent = m.nome + ' · ' + veic;
+    $('dMNota').hidden = !ehMensal;
+    $('dPerf').hidden = ehMensal; $('dQrBox').hidden = ehMensal;
+    $('dFoot').classList.toggle('mensal', ehMensal);
+    $('dFootA').textContent = ehMensal ? m.planoCurto : 'Tarifa: [VALOR]/h';
+    $('dFootB').textContent = ehMensal
+      ? (diasAte(m.vencimento) < 0 ? 'Mensalidade vencida' : 'Válido até ' + dataBR(m.vencimento))
+      : 'Operador: ' + ((window.gipeAuth && gipeAuth.nome()) || '—');
+
+    // Entrada fica registrada como "aberta" (no app real: gravada na API)
+    ENTRADAS.push({ placa: estado.placa, placaFmt: placaFmt, ticket: num, token: cod, entrada: d.getTime(), mensal: ehMensal ? m : null });
+
+    // D
+    aplicarVisual($('dPlate'), $('dBand'), estado.tipo);
+    $('dPlaca').textContent = placaFmt;
+    $('dTicket').textContent = num;
+    $('dData').textContent = data;
+    $('dHora').textContent = hora;
+    $('dVeiculo').textContent = veic;
+    $('dCat').textContent = cat;
+    $('dLink').textContent = cod.length <= 20 ? 'Código ' + cod : '';
+    desenharQR($('dQR'), URL_COMPROVANTE + encodeURIComponent(cod));
+    $('dEmpty').hidden = true; $('dBody').hidden = false;
+
+    // F – comprovante só para avulso; mensalista consulta pelo CPF (Q)
+    if (ehMensal){
+      $('fEmptyTxt').innerHTML = 'Mensalista não recebe QR.<br>O comprovante aparece na tela <b>Q</b>, informando o CPF.';
+      $('fEmpty').hidden = false; clearInterval(timer); entradaEm = null;
+    } else {
+      $('fTicket').textContent = num;
+      $('fPlaca').textContent = placaFmt;
+      $('fEntrada').textContent = data + ' · ' + hora;
+      $('fVeiculo').textContent = veic;
+      $('fCat').textContent = cat;
+      desenharQR($('fQR'), cod);
+      $('fEmpty').hidden = true;
+      tempo(); clearInterval(timer); timer = setInterval(tempo, 30000);
+    }
+
+    if (window.gipeApp) gipeApp.aposEntrada({ placa: estado.placa, placaFmt: placaFmt, tipo: estado.tipo, ticket: num,
+      entrada: d.getTime(), mensalista: ehMensal ? m.nome : null, cpf: ehMensal ? m.cpf : null, veiculo: veic, categoria: cat });
+  }
+
+  $('confirmar').addEventListener('click', function(){
+    var btn = $('confirmar');
+    var payload = {
+      placa: estado.placa,
+      categoria: API.categoria[estado.cat] || null,
+      codigoTicket: null,
+      mensalista: modoEntrada() === 'mensal',
+      modelo: tituloCase(($('modelo').value || '').trim()) || null,
+      cor: tituloCase(estado.cor) || null
+    };
+    btn.disabled = true; btn.textContent = 'Registrando…';
+    apiFetch('/patio/entrada', { method:'POST', headers:{ 'Content-Type':'application/json' }, body: JSON.stringify(payload) })
+      .then(function(resp){
+        registrarNaTela(resp);
+        toast('Entrada registrada no pátio');
+      })
+      .catch(function(e){
+        toast('Entrada NÃO registrada: ' + erroRede(e));
+        hintPlaca('err', 'Falha ao registrar a entrada: ' + erroRede(e) + '. Tente novamente.');
+      })
+      .then(function(){ btn.textContent = 'Confirmar Entrada'; atualizarBotao(); });
+  });
+
+  /* =====================================================================
+     Q / P · Área do mensalista: CPF -> comprovante de entrada
+     No app real: buscarEntradaPorCpf() consulta a API.
+     ===================================================================== */
+  var ENTRADAS = [];
+  function digitos(v){ return String(v).replace(/\D/g,''); }
+  function mascCpf(v){
+    var d = digitos(v).slice(0,11);
+    return d.replace(/^(\d{3})(\d)/,'$1.$2').replace(/^(\d{3})\.(\d{3})(\d)/,'$1.$2.$3').replace(/\.(\d{3})(\d)/,'.$1-$2');
+  }
+  function cpfOk(c){
+    c = digitos(c); if (c.length !== 11 || /^(\d)\1+$/.test(c)) return false;
+    for (var t=9; t<11; t++){ var s=0; for (var i=0;i<t;i++) s += c[i]*((t+1)-i); if (((10*s)%11)%10 != c[t]) return false; }
+    return true;
+  }
+  function buscarEntradaPorCpf(cpf){
+    var m = MENSALISTAS.filter(function(x){ return x.cpf === cpf; })[0];
+    if (!m) return { erro:'CPF não encontrado entre os mensalistas.' };
+    var abertas = ENTRADAS.filter(function(e){ return e.mensal === m; });
+    if (!abertas.length) return { erro:'Nenhum veículo seu está no pátio agora.' };
+    return { mensal:m, entrada: abertas[abertas.length - 1] };
+  }
+  function primeiroNome(n){ var p = n.replace(/\s*\(EXEMPLO\)/,'').split(' ')[0]; return p.charAt(0) + p.slice(1).toLowerCase(); }
+
+  var pTimer = null, pAtual = null, pMensal = null;
+  function pTempo(){
+    if (!pAtual) return;
+    var min = Math.floor((Date.now() - pAtual.entrada) / 60000);
+    $('pTempo').textContent = Math.floor(min/60) + 'h ' + pad(min % 60) + 'min';
+  }
+  $('qCpf').addEventListener('input', function(e){
+    e.target.value = mascCpf(e.target.value);
+    $('qMsg').textContent = '';
+    $('qBtn').disabled = digitos(e.target.value).length !== 11;
+  });
+  $('qFormEl').addEventListener('submit', function(e){
+    e.preventDefault();
+    var cpf = digitos($('qCpf').value);
+    if (!cpfOk(cpf)){ $('qMsg').textContent = 'CPF inválido — confira os números.'; return; }
+    var r = buscarEntradaPorCpf(cpf);
+    if (r.erro){ $('qMsg').textContent = r.erro; return; }
+    var m = r.mensal, en = r.entrada, vencido = diasAte(m.vencimento) < 0;
+    pAtual = en; pMensal = m;
+    $('pOla').textContent = 'Olá, ' + primeiroNome(m.nome);
+    $('pTicket').textContent = en.ticket;
+    $('pPlaca').textContent = en.placaFmt;
+    $('pEntrada').textContent = dataBR(en.entrada) + ' · ' + pad(new Date(en.entrada).getHours()) + ':' + pad(new Date(en.entrada).getMinutes());
+    $('pPlano').textContent = m.planoCurto;
+    $('pKVal').textContent = vencido ? 'Venceu em' : 'Próximo vencimento';
+    $('pValidade').textContent = dataBR(m.vencimento);
+    $('pChip').textContent = vencido ? 'Mensalidade em aberto' : 'Coberto pelo plano · nada a pagar';
+    $('pChip').style.background = vencido ? '#FDE7D9' : ''; $('pChip').style.color = vencido ? '#9A3412' : '';
+    desenharQR($('pQR'), en.token);
+    pTempo(); clearInterval(pTimer); pTimer = setInterval(pTempo, 30000);
+    $('qForm').hidden = true; $('qP').hidden = false;
+  });
+  /* ---- Baixar PDF do comprovante do mensalista ---- */
+  function toast(t){ var el=$('toast'); el.textContent=t; el.classList.add('show'); setTimeout(function(){ el.classList.remove('show'); }, 3000); }
+  function horaBR(ms){ var d=new Date(ms); return pad(d.getHours())+':'+pad(d.getMinutes()); }
+
+  function gerarPdf(m, en){
+    var J = window.jspdf && window.jspdf.jsPDF;
+    if (!J) return null;
+    var doc = new J({ unit:'mm', format:[80, 150] }), y = 12, W = 80;
+    doc.setFillColor(31,79,214); doc.rect(0,0,W,24,'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(8);
+    doc.text('MENSALISTA · COMPROVANTE DE ENTRADA', 6, 9);
+    doc.setFontSize(12); doc.text(ESTAC.nome, 6, 16, { maxWidth: W-12 });
+    doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.text(ESTAC.endereco, 6, 21, { maxWidth: W-12 });
+    doc.setTextColor(20,24,31); y = 33;
+    function linha(rot, val){
+      doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(74,82,96); doc.text(rot.toUpperCase(), 6, y);
+      doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.setTextColor(20,24,31); doc.text(String(val), 6, y+5, { maxWidth: W-12 });
+      y += 11;
+    }
+    linha('Cliente', m.nome.replace(/\s*\(EXEMPLO\)/,''));
+    linha('Placa', en.placaFmt);
+    linha('Entrada', dataBR(en.entrada) + ' às ' + horaBR(en.entrada));
+    linha('Plano', m.planoCurto);
+    linha(diasAte(m.vencimento) < 0 ? 'Mensalidade venceu em' : 'Próximo vencimento', dataBR(m.vencimento));
+    linha('Ticket', 'Nº ' + en.ticket);
+    // QR de saída desenhado em vetor
+    if (typeof qrcode === 'function'){
+      var q = qrcode(0,'M'); q.addData(en.token); q.make();
+      var n = q.getModuleCount(), lado = 34, c = lado / n, x0 = (W - lado)/2, y0 = y + 1;
+      doc.setFillColor(20,24,31);
+      for (var r=0;r<n;r++) for (var k=0;k<n;k++) if (q.isDark(r,k)) doc.rect(x0 + k*c, y0 + r*c, c+0.02, c+0.02, 'F');
+      y = y0 + lado + 5;
+      doc.setFont('helvetica','normal'); doc.setFontSize(7); doc.setTextColor(74,82,96);
+      doc.text('Apresente este código na saída', W/2, y, { align:'center' });
+    }
+    return doc;
+  }
+
+  $('pPdf').addEventListener('click', function(){
+    if (!pAtual || !pMensal) return;
+    var doc = gerarPdf(pMensal, pAtual);
+    if (!doc){ toast('Sem internet para gerar o PDF. Tente novamente.'); return; }
+    doc.save('comprovante-' + pAtual.placa + '-' + pAtual.ticket + '.pdf');
+    toast('Comprovante salvo em PDF');
+  });
+  $('pLigar').href = 'tel:' + ESTAC.telefone;
+
+  $('pSair').addEventListener('click', function(){
+    clearInterval(pTimer); pAtual = null;
+    $('qCpf').value = ''; $('qBtn').disabled = true; $('qMsg').textContent = '';
+    $('qP').hidden = true; $('qForm').hidden = false;
+  });
+
+  function limparEntrada(){
+    inp.value = ''; $('modelo').value = '';
+    selCat(null); selCor(null);
+    inp.dispatchEvent(new Event('input'));
+  }
+  window.gipeEntrada = { limpar: limparEntrada };
+  $('novaEntrada').addEventListener('click', limparEntrada);
+})();
+</script>
+
+<!-- Modelo de OCR de placas: cct_s_v2_global do fast-plate-ocr (https://github.com/ankandrew/fast-plate-ocr), licença MIT, Copyright (c) ankandrew -->
+<script>
+/* =====================================================================
+   Leitor automático de placa pela câmera (tela A)
+   A câmera abre dentro do próprio campo Placa. O modelo fast-plate-ocr roda
+   no navegador (ONNX Runtime Web) e, ao reconhecer a placa, preenche o campo
+   #placa — o formulário reage como se ela tivesse sido digitada.
+   ===================================================================== */
+(function(){
+  var ORT_CDN = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/';
+  var CFG = {
+    W:128, H:64, SLOTS:10, ALPHABET:'0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_',
+    SCALES:[1.0, 0.85, 0.7], MIN_CONF:0.55, VOTES:3, WINDOW:5, INTERVAL_MS:90, COOLDOWN_MS:8000
+  };
+  var PATTERN = ['L','L','L','D','X','D','D'];          // ABC1234 ou ABC1D23
+  var A = CFG.ALPHABET, PAD_IDX = A.indexOf('_');
+
+  var $ = function(id){ return document.getElementById(id); };
+  var video = $('scanVideo'), guide = $('scanGuide'), box = $('scanBox');
+  var session = null, modeloErro = null, stream = null, track = null, scanning = false, timer = null;
+  var recent = [], cooldown = { placa:null, ate:0 }, ultima = null, audio = null, torch = false;
+
+  function fmt(p){ return /[0-9]/.test(p[4]) ? p.slice(0,3) + '-' + p.slice(3) : p; }
+  function live(t){ $('scanLiveTxt').textContent = t; }
+  function avisoErro(t){ var h = $('plateHint'); h.className = 'hint err'; h.textContent = t; }
+  function infoMsg(t){ var h = $('plateHint'); h.className = 'hint info'; h.textContent = t; }
+  // Qualquer erro inesperado do leitor aparece embaixo da placa (facilita achar o problema)
+  window.addEventListener('error', function(e){ if (box && !box.hidden) avisoErro('Erro no leitor: ' + (e.message || e)); });
+  window.addEventListener('unhandledrejection', function(e){ if (box && !box.hidden) avisoErro('Erro no leitor: ' + ((e.reason && e.reason.message) || e.reason)); });
+
+  /* ---------- Modelo (carrega em segundo plano) ---------- */
+  function carregarModelo(){
+    if (!window.ort){ modeloErro = 'sem internet para carregar o leitor'; return; }
+    ort.env.wasm.wasmPaths = ORT_CDN; ort.env.wasm.numThreads = 1;
+    fetch('plate-model.onnx')
+      .then(function(r){ if (!r.ok) throw new Error('modelo de placas não encontrado (' + r.status + ')'); return r.arrayBuffer(); })
+      .then(function(buf){ return ort.InferenceSession.create(new Uint8Array(buf), { executionProviders:['wasm'], graphOptimizationLevel:'all' }); })
+      .then(function(s){ session = s; })
+      .catch(function(e){ modeloErro = e.message; });
+  }
+
+  /* ---------- Câmera ----------
+     A permissão é pedida UMA vez, assim que o app abre. Depois:
+     - se o navegador guardou a permissão (ex.: Chrome no Android, "Permitir"), a câmera é desligada
+       quando não está em uso e religada sem perguntar de novo;
+     - se o navegador não guarda (ex.: Safari/iPhone ou "Somente desta vez"), a câmera fica ligada em
+       segundo plano enquanto o app estiver aberto, para não pedir permissão a cada leitura. */
+  var pedindo = null, permGuardada = false, usouCamera = false;
+
+  function comTempo(p, ms, erro){ return Promise.race([p, new Promise(function(_, rej){ setTimeout(function(){ rej(new Error(erro)); }, ms); })]); }
+  function pegarStream(){
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia)
+      return Promise.reject(new Error('este navegador não libera a câmera aqui (a página precisa estar em HTTPS)'));
+    return navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:'environment' }, width:{ ideal:1280 }, height:{ ideal:720 } }, audio:false })
+      .catch(function(e){
+        if (e.name === 'NotAllowedError' || e.name === 'SecurityError') throw e;
+        return navigator.mediaDevices.getUserMedia({ video:true, audio:false });
+      });
+  }
+  function permissaoGuardada(){
+    try {
+      if (!navigator.permissions || !navigator.permissions.query) return Promise.resolve(false);
+      return navigator.permissions.query({ name:'camera' })
+        .then(function(s){ return s.state === 'granted'; }, function(){ return false; });
+    } catch(e){ return Promise.resolve(false); }
+  }
+  function cameraViva(){ return !!(stream && track && track.readyState === 'live'); }
+
+  function soltarStream(){
+    if (stream) stream.getTracks().forEach(function(t){ t.stop(); });
+    stream = null; track = null; torch = false; video.srcObject = null;
+    $('scanTorch').classList.remove('on');
+  }
+
+  // Liga a câmera (pedindo permissão só se for preciso) e espera o primeiro quadro
+  function obterCamera(){
+    if (cameraViva()) return Promise.resolve(stream);
+    if (pedindo) return pedindo;
+    pedindo = comTempo(pegarStream(), 20000, 'a câmera não respondeu — veja se o navegador está pedindo permissão ou se outro app está usando a câmera')
+      .then(function(s){
+        stream = s; track = s.getVideoTracks()[0];
+        // o sistema pode encerrar a câmera (ex.: app em segundo plano no iPhone)
+        track.addEventListener('ended', function(){ if (stream === s){ stream = null; track = null; pausar(); } });
+        video.muted = true; video.setAttribute('muted', ''); video.setAttribute('playsinline', '');
+        video.srcObject = s;
+        var pl = video.play(); if (pl && pl.catch) pl.catch(function(){});
+        return comTempo(new Promise(function(res){
+          (function checa(){ if (video.videoWidth > 0) return res(); setTimeout(checa, 100); })();
+        }), 10000, 'a câmera abriu, mas não enviou imagem');
+      })
+      .then(function(){
+        try {
+          var caps = track.getCapabilities ? track.getCapabilities() : {};
+          if (caps.focusMode && caps.focusMode.indexOf('continuous') >= 0) track.applyConstraints({ advanced:[{ focusMode:'continuous' }] }).catch(function(){});
+          $('scanTorch').hidden = !caps.torch;
+        } catch(e){}
+        return permissaoGuardada().then(function(g){ permGuardada = g; });
+      })
+      .then(function(){ pedindo = null; return stream; },
+            function(e){ pedindo = null; soltarStream(); throw e; });
+    return pedindo;
+  }
+
+  // Ao abrir o app: pede a permissão da câmera logo de cara (sem mostrar a câmera)
+  function preparar(){
+    if (cameraViva() || pedindo) return;
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+    permissaoGuardada().then(function(g){
+      if (g){ permGuardada = true; return; }            // já permitida antes: não precisa perguntar
+      infoMsg('Permita o uso da câmera para ler as placas automaticamente.');
+      obterCamera().then(function(){
+        if ($('plateHint').className.indexOf('info') >= 0) infoMsg('');
+        if (permGuardada && box.hidden) soltarStream();  // permissão ficou guardada: desliga até precisar
+      }).catch(function(e){
+        if (e.name === 'NotAllowedError') avisoErro('Câmera não permitida — para ler placas, libere a câmera nas configurações do site.');
+        else if ($('plateHint').className.indexOf('info') >= 0) infoMsg('');
+      });
+    });
+  }
+
+  function abrir(){
+    destravarAudio();
+    usouCamera = true;
+    if (modeloErro){ avisoErro('Leitor indisponível (' + modeloErro + ') — digite a placa.'); return; }
+    box.hidden = false;
+    if (cameraViva()){
+      var pl = video.play(); if (pl && pl.catch) pl.catch(function(){});
+      retomar(); return;                               // câmera já ligada: só volta a ler
+    }
+    live('abrindo câmera…');
+    obterCamera()
+      .then(function(){ if ($('plateHint').className.indexOf('info') >= 0) infoMsg(''); retomar(); })
+      .catch(function(e){
+        pausar();
+        avisoErro(e.name === 'NotAllowedError'
+          ? 'Câmera bloqueada — libere o acesso nas configurações do site, ou digite a placa.'
+          : 'Não foi possível abrir a câmera (' + e.message + ') — digite a placa.');
+      });
+  }
+
+  function pausar(){ scanning = false; clearTimeout(timer); box.hidden = true; }
+
+  // Fechar o leitor: só desliga a câmera de verdade se o navegador lembrar a permissão
+  function fecharCamera(){
+    pausar();
+    usouCamera = false;
+    if (permGuardada) soltarStream();
+  }
+
+  function lanterna(){
+    if (!track) return;
+    torch = !torch;
+    track.applyConstraints({ advanced:[{ torch:torch }] })
+      .then(function(){ $('scanTorch').classList.toggle('on', torch); })
+      .catch(function(){ torch = false; });
+  }
+
+  /* ---------- Recorte da moldura → tensor [N,64,128,3] ---------- */
+  var cv = document.createElement('canvas'); cv.width = CFG.W; cv.height = CFG.H;
+  var cx = cv.getContext('2d', { willReadFrequently:true });
+  function retanguloGuia(){
+    var vw = video.videoWidth, vh = video.videoHeight;
+    if (!vw || !vh) return null;
+    var r = video.getBoundingClientRect(), g = guide.getBoundingClientRect();
+    if (!r.width || !g.width) return null;
+    var s = Math.max(r.width / vw, r.height / vh), ox = (r.width - vw*s)/2, oy = (r.height - vh*s)/2;
+    return { x:(g.left - r.left - ox)/s, y:(g.top - r.top - oy)/s, w:g.width/s, h:g.height/s, vw:vw, vh:vh };
+  }
+  function montarLote(rc){
+    var n = CFG.SCALES.length, px = CFG.W * CFG.H, data = new Uint8Array(n * px * 3);
+    CFG.SCALES.forEach(function(sc, b){
+      var w = rc.w*sc, h = rc.h*sc;
+      var x = Math.max(0, Math.min(rc.vw - w, rc.x + (rc.w - w)/2));
+      var y = Math.max(0, Math.min(rc.vh - h, rc.y + (rc.h - h)/2));
+      cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = 'medium';
+      cx.drawImage(video, x, y, w, h, 0, 0, CFG.W, CFG.H);
+      var img = cx.getImageData(0, 0, CFG.W, CFG.H).data, off = b*px*3;
+      for (var i = 0, j = 0; i < img.length; i += 4, j += 3){ data[off+j] = img[i]; data[off+j+1] = img[i+1]; data[off+j+2] = img[i+2]; }
+    });
+    return new ort.Tensor('uint8', data, [n, CFG.H, CFG.W, 3]);
+  }
+
+  /* ---------- Decodificação no padrão brasileiro ----------
+     Em cada posição, escolhe o caractere mais provável do tipo certo (letra/número). */
+  function decodificar(p, base){
+    var placa = '', minConf = 1, L = A.length;
+    for (var k = 0; k < CFG.SLOTS; k++){
+      var o = base + k*L, top = 0;
+      for (var i = 1; i < L; i++) if (p[o+i] > p[o+top]) top = i;
+      if (k >= 7){ if (p[o+PAD_IDX] < 0.5) return null; continue; }   // sobrou caractere: não é placa BR
+      if (top === PAD_IDX && p[o+top] > 0.6) return null;              // faltou caractere
+      var want = PATTERN[k], best = -1;
+      for (var c = 0; c < 36; c++){
+        var okc = want === 'L' ? c >= 10 : want === 'D' ? c < 10 : true;
+        if (okc && (best < 0 || p[o+c] > p[o+best])) best = c;
+      }
+      placa += A[best]; minConf = Math.min(minConf, p[o+best]);
+    }
+    return { placa:placa, conf:minConf };
+  }
+
+  /* ---------- Loop de leitura ---------- */
+  function ciclo(){
+    if (!scanning) return;
+    if (modeloErro){ fecharCamera(); avisoErro('Leitor indisponível (' + modeloErro + ') — digite a placa.'); return; }
+    if (!session){ live('carregando leitor…'); timer = setTimeout(ciclo, 300); return; }
+    var rc = retanguloGuia();
+    if (!rc){ timer = setTimeout(ciclo, 200); return; }
+    session.run({ input: montarLote(rc) }).then(function(out){
+      if (!scanning) return;
+      var probs = out.plate.data, per = CFG.SLOTS * A.length, melhor = null;
+      for (var b = 0; b < CFG.SCALES.length; b++){
+        var d = decodificar(probs, b*per);
+        if (d && (!melhor || d.conf > melhor.conf)) melhor = d;
+      }
+      processar(melhor);
+      if (scanning) timer = setTimeout(ciclo, CFG.INTERVAL_MS);
+    }).catch(function(){ if (scanning) timer = setTimeout(ciclo, 500); });
+  }
+
+  function processar(d){
+    var emPausa = d && cooldown.placa === d.placa && Date.now() < cooldown.ate;
+    var valido = d && d.conf >= CFG.MIN_CONF && !emPausa;
+    recent.push(valido ? d : null); if (recent.length > CFG.WINDOW) recent.shift();
+    if (!valido){
+      guide.className = 'scan-guide';
+      live(emPausa ? fmt(d.placa) + ' já lida' : 'enquadre a placa');
+      return;
+    }
+    guide.className = 'scan-guide lendo';
+    live('lendo ' + fmt(d.placa) + ' · ' + Math.round(d.conf*100) + '%');
+    var iguais = recent.filter(function(r){ return r && r.placa === d.placa; });
+    if (iguais.length >= CFG.VOTES) travar(d.placa);
+  }
+
+  function travar(placa){
+    recent = []; ultima = placa;
+    guide.className = 'scan-guide ok';
+    live(fmt(placa) + ' ✓');
+    bip();
+    pausar();                               // esconde a câmera e mostra a placa no campo
+    var inp = $('placa');
+    inp.value = placa;
+    inp.dispatchEvent(new Event('input', { bubbles:true }));
+  }
+
+  function retomar(){
+    if (ultima){ cooldown = { placa:ultima, ate:Date.now() + CFG.COOLDOWN_MS }; ultima = null; }
+    box.hidden = false;
+    guide.className = 'scan-guide';
+    live(session ? 'enquadre a placa' : 'carregando leitor…');
+    if (!scanning){ scanning = true; recent = []; ciclo(); }
+  }
+
+  /* ---------- Som / vibração ---------- */
+  function destravarAudio(){ try { if (!audio) audio = new (window.AudioContext || window.webkitAudioContext)(); if (audio.state === 'suspended') audio.resume(); } catch(e){} }
+  function bip(){
+    try { navigator.vibrate && navigator.vibrate(120); } catch(e){}
+    try { if (!audio) return; var o = audio.createOscillator(), g = audio.createGain();
+      o.frequency.value = 880; g.gain.value = 0.08; o.connect(g); g.connect(audio.destination); o.start(); o.stop(audio.currentTime + 0.12); } catch(e){}
+  }
+
+  $('scanStart').addEventListener('click', abrir);
+  $('scanStop').addEventListener('click', function(){ fecharCamera(); $('placa').focus(); });
+  $('scanTorch').addEventListener('click', lanterna);
+  // Depois de registrar a entrada e tocar em "Nova entrada", a câmera volta a ler sozinha
+  $('novaEntrada').addEventListener('click', function(){ if (usouCamera) setTimeout(function(){ $('placa').blur(); abrir(); }, 50); });
+
+  // usado pelo menu do app para desligar a câmera ao sair da tela de entrada
+  window.gipeScan = { fechar: fecharCamera, aberto: function(){ return cameraViva(); }, preparar: preparar,
+                      obterStream: function(){ return obterCamera(); },   // usado pela Saída (mesma câmera)
+                      desligar: function(){ pausar(); usouCamera = false; soltarStream(); } };
+
+  carregarModelo();
+  if (!window.gipeAuth || window.gipeAuth.logado()) preparar();   // pede a câmera ao abrir (se já estiver logado)
+})();
+</script>
+
+<script>
+/* =====================================================================
+   APP · menu inferior (Pátio / Entrada / Saída) e navegação entre telas
+   ===================================================================== */
+(function(){
+
+  var TITULOS = { patio:'Pátio', entrada:'Entrada de Veículos', saida:'Saída de Veículos' };
+  var $ = function(id){ return document.getElementById(id); };
+  var aba = null, tela = 'A', ultima = null, relogio = null;
+
+  function pad(n){ return String(n).padStart(2,'0'); }
+
+  /* ---------- Pátio (dados da API: GET /api/v1/patio) ---------- */
+  var patio = [], patioCarregando = false, patioAtualizadoEm = null, patioErro = null;
+
+  function permanencia(ms){
+    var min = Math.max(0, Math.floor((Date.now() - ms) / 60000));
+    return Math.floor(min/60) + 'h ' + pad(min % 60) + 'min';
+  }
+
+  // Acha a lista de veículos na resposta (array direto ou dentro de dados/data/itens…)
+  function acharLista(d, prof){
+    prof = prof || 0;
+    if (Array.isArray(d)) return d;
+    if (!d || typeof d !== 'object' || prof > 3) return null;
+    var pref = ['dados','data','itens','items','veiculos','registros','resultado','result','value','lista','patio'];
+    var chaves = Object.keys(d), i, l;
+    for (i = 0; i < chaves.length; i++) if (pref.indexOf(chaves[i].toLowerCase()) >= 0 && (l = acharLista(d[chaves[i]], prof + 1))) return l;
+    for (i = 0; i < chaves.length; i++) if (Array.isArray(d[chaves[i]])) return d[chaves[i]];
+    return null;
+  }
+  function texto(v, nomes){
+    if (v === undefined || v === null) return '';
+    if (typeof v === 'object') v = gipeApi.campo(v, nomes || ['nome','descricao','valor']);
+    return v === undefined || v === null ? '' : String(v);
+  }
+  function dataDe(v){
+    if (!v) return null;
+    if (typeof v === 'number') return v < 1e12 ? v * 1000 : v;
+    var t = Date.parse(String(v)); return isNaN(t) ? null : t;
+  }
+  function simNao(v){
+    if (typeof v === 'boolean') return v;
+    if (typeof v === 'number') return v !== 0;
+    if (typeof v === 'string') return /^(true|sim|s|1|mensal|mensalista)$/i.test(v.trim());
+    return false;
+  }
+
+  function normalizar(it){
+    var c = gipeApi.campo;
+    var placa = texto(c(it, ['placa','placaVeiculo','numeroPlaca'])).toUpperCase().replace(/[^A-Z0-9]/g, '');
+    var antiga = /^[A-Z]{3}[0-9]{4}$/.test(placa);
+    var modelo = texto(c(it, ['modelo','modeloVeiculo','descricaoModelo','nomeModelo']));
+    var cor = texto(c(it, ['cor','corVeiculo','descricaoCor']));
+    var catBruta = c(it, ['categoria','categoriaId','idCategoria','tipoVeiculo','categoriaVeiculo']);
+    var catId = gipeApi.catDaApi(catBruta);
+    var categoria = catId ? gipeApi.nomeCat(catId) : texto(catBruta);
+    var tipoReg = texto(c(it, ['tipo','tipoEntrada','tipoCliente','modalidade']));
+    var mensal = simNao(c(it, ['mensalista','isMensalista','ehMensalista'])) || /mensal/i.test(tipoReg);
+    var cliente = texto(c(it, ['nomeCliente','cliente','nomeMensalista','mensalistaNome','clienteNome']), ['nome','nomeCompleto','descricao']);
+    return {
+      placa: placa,
+      placaFmt: antiga ? placa.slice(0,3) + '-' + placa.slice(3) : (placa || '—'),
+      tipo: antiga ? 'antiga' : 'merco',
+      veiculo: [modelo, cor].filter(Boolean).join(' · ').toUpperCase(),
+      categoria: categoria,
+      mensalista: mensal,
+      cliente: cliente,
+      ticket: texto(c(it, ['codigoTicket','ticket','numeroTicket','codigo'])),
+      entrada: dataDe(c(it, ['dataEntrada','dataHoraEntrada','entrada','horaEntrada','dataHora','entradaEm','criadoEm','createdAt','dataCadastro']))
+    };
+  }
+
+  function carregarPatio(silencioso){
+    if (patioCarregando || !window.gipeApi) return;
+    if (window.gipeAuth && !window.gipeAuth.logado()) return;
+    patioCarregando = true;
+    if (!silencioso){ $('patNota').textContent = 'Carregando o pátio…'; $('patAtualizar').classList.add('girando'); }
+    gipeApi.get('/patio').then(function(d){
+      var lista = acharLista(d) || [];
+      if (!lista.length && d && !Array.isArray(d) && !acharLista(d)) console.warn('[GIPE pátio] formato não reconhecido:', d);
+      patio = lista.map(normalizar).sort(function(a, b){ return (b.entrada || 0) - (a.entrada || 0); });
+      patioErro = null; patioAtualizadoEm = Date.now();
+    }).catch(function(e){
+      patioErro = gipeApi.erroRede(e);
+    }).then(function(){
+      patioCarregando = false; $('patAtualizar').classList.remove('girando');
+      renderPatio();
+    });
+  }
+
+  function renderPatio(){
+    var lista = $('patLista'); lista.innerHTML = '';
+    var busca = ($('patBusca').value || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    var men = patio.filter(function(e){ return e.mensalista; }).length;
+    $('patTotal').textContent = patio.length;
+    $('patMen').textContent = men;
+    $('patRot').textContent = patio.length - men;
+
+    var visiveis = busca ? patio.filter(function(e){ return e.placa.indexOf(busca) >= 0; }) : patio;
+    $('patVazio').hidden = visiveis.length > 0 || (!patioAtualizadoEm && !patioErro);
+    $('patVazioTxt').textContent = patioErro ? 'Não foi possível carregar o pátio: ' + patioErro + '.'
+      : (busca ? 'Nenhum veículo com essa placa no pátio.' : 'Nenhum veículo no pátio agora.');
+    $('patIrEntrada').hidden = !!(patioErro || busca);
+    $('patTentar').hidden = !patioErro;
+    if (patioAtualizadoEm){
+      var a = new Date(patioAtualizadoEm);
+      $('patNota').textContent = 'Atualizado às ' + pad(a.getHours()) + ':' + pad(a.getMinutes()) + (patioErro ? ' · falha na última atualização' : '');
+    } else if (!patioCarregando) $('patNota').textContent = '';
+
+    visiveis.forEach(function(e){
+      var item = document.createElement('div'); item.className = 'pat-item';
+
+      var pl = document.createElement('div'); pl.className = 'pplate ' + e.tipo;
+      var band = document.createElement('div'); band.className = 'band'; band.textContent = e.tipo === 'antiga' ? '' : 'BRASIL';
+      var num = document.createElement('div'); num.className = 'num'; num.textContent = e.placaFmt;
+      pl.appendChild(band); pl.appendChild(num);
+
+      var info = document.createElement('div'); info.className = 'pat-info';
+      var b = document.createElement('b');
+      b.textContent = e.mensalista && e.cliente ? e.cliente : (e.veiculo || e.categoria || '—');
+      var s = document.createElement('span');
+      s.textContent = [e.mensalista && e.cliente ? e.veiculo : e.categoria, e.ticket ? 'Ticket ' + e.ticket : ''].filter(Boolean).join(' · ') || ' ';
+      info.appendChild(b); info.appendChild(s);
+
+      var tp = document.createElement('div'); tp.className = 'pat-tempo';
+      var t = document.createElement('b'); t.textContent = e.entrada ? permanencia(e.entrada) : '—';
+      var desde = document.createElement('span'); desde.style.cssText = 'font-size:12px;color:var(--muted)';
+      if (e.entrada){ var d = new Date(e.entrada); desde.textContent = 'desde ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+      var chip = document.createElement('span'); chip.className = 'pat-chip' + (e.mensalista ? '' : ' rot');
+      chip.textContent = e.mensalista ? 'MENSALISTA' : 'ROTATIVO';
+      tp.appendChild(t); tp.appendChild(desde); tp.appendChild(chip);
+
+      item.appendChild(pl); item.appendChild(info); item.appendChild(tp);
+      lista.appendChild(item);
+    });
+  }
+
+  /* ---------- Navegação ---------- */
+  function limparFormularioEntrada(){
+    if (window.gipeEntrada) { window.gipeEntrada.limpar(); return; }
+    $('placa').value = ''; $('modelo').value = '';
+    $('placa').dispatchEvent(new Event('input'));
+  }
+
+  function render(){
+    var naEntrada = aba === 'entrada';
+    $('colPatio').hidden = aba !== 'patio';
+    $('colSaida').hidden = aba !== 'saida';
+    $('colA').hidden = !(naEntrada && tela === 'A');
+    $('colD').hidden = !(naEntrada && tela === 'D');
+    $('colF').hidden = !(naEntrada && tela === 'F');
+    $('colQ').hidden = !(naEntrada && tela === 'Q');
+    $('hdrTitle').textContent = TITULOS[aba];
+    $('hdrBack').hidden = !(naEntrada && (tela === 'F' || tela === 'Q'));
+    document.querySelectorAll('.tabbar button').forEach(function(b){
+      if (b.dataset.tab === aba) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
+    });
+    document.title = 'GIPE · ' + TITULOS[aba];
+  }
+
+  function irPara(nova){
+    if (!TITULOS[nova]) nova = 'entrada';
+    var anterior = aba;
+    if (anterior === nova){
+      // tocar de novo em "Entrada" estando no cupom volta para uma nova entrada
+      if (nova === 'entrada' && tela !== 'A'){ tela = 'A'; limparFormularioEntrada(); render(); window.scrollTo(0,0); }
+      return;
+    }
+    // saindo da Entrada: desliga a câmera do leitor de placa
+    if (anterior === 'entrada' && window.gipeScan) window.gipeScan.fechar();
+    // saindo da Saída: para a leitura de QR
+    if (anterior === 'saida' && window.gipeSaida) window.gipeSaida.fechar();
+
+    aba = nova;
+    if (nova === 'entrada' && tela !== 'A'){ tela = 'A'; limparFormularioEntrada(); }
+    if (nova === 'saida' && window.gipeSaida) setTimeout(function(){ window.gipeSaida.abrir(); }, 0);
+    clearInterval(relogio);
+    if (nova === 'patio'){ renderPatio(); carregarPatio(); relogio = setInterval(function(){ carregarPatio(true); }, 45000); }
+
+    try { history.replaceState(null, '', '#' + nova); } catch(e){ location.hash = nova; }
+    render();
+    window.scrollTo(0, 0);
+  }
+
+  document.querySelectorAll('.tabbar button').forEach(function(b){
+    b.addEventListener('click', function(){ irPara(b.dataset.tab); });
+  });
+  window.addEventListener('hashchange', function(){ irPara(location.hash.slice(1)); });
+
+  /* ---------- Depois de confirmar a entrada: mostra o comprovante ---------- */
+  window.gipeApp = {
+    irPara: function(t){ irPara(t); },
+    aposEntrada: function(e){
+      ultima = e;
+      tela = 'D'; render(); window.scrollTo(0, 0);
+    }
+  };
+
+  // Cupom → "Nova entrada"
+  $('novaEntrada').addEventListener('click', function(){ tela = 'A'; render(); window.scrollTo(0, 0); });
+
+  $('hdrBack').addEventListener('click', function(){ tela = 'D'; render(); window.scrollTo(0, 0); });
+
+  // Pátio
+  $('patIrEntrada').addEventListener('click', function(){ irPara('entrada'); });
+  $('patAtualizar').addEventListener('click', function(){ carregarPatio(); });
+  $('patTentar').addEventListener('click', function(){ carregarPatio(); });
+  $('patBusca').addEventListener('input', renderPatio);
+  try { localStorage.removeItem('gipe-patio'); } catch(e){}   // lista local antiga não é mais usada
+
+  irPara(location.hash.slice(1) || 'entrada');
+})();
+</script>
+<script>
+/* =====================================================================
+   SAÍDA DE VEÍCULOS
+   1) Lê o QR (token) ou recebe placa / nº do ticket (sequencial)
+   2) GET  /api/v1/patio/saida?token=… | ?placa=… | ?sequencial=…
+   3) POST /api/v1/patio/{id}/saida   { valor, formaPagamento }
+   ===================================================================== */
+(function(){
+  // Código da forma de pagamento na API
+  var FORMAS = { 'Dinheiro':1, 'PIX':2, 'Débito':3, 'Crédito':4 };
+
+  // Usado SOMENTE se a API não devolver o valor a cobrar (valores de exemplo)
+  var TARIFAS = {
+    'Moto':          { primeira:  5.00, adicional: 3.00 },
+    'Carro pequeno': { primeira:  8.00, adicional: 4.00 },
+    'Carro médio':   { primeira: 10.00, adicional: 5.00 },
+    'Carro grande':  { primeira: 12.00, adicional: 6.00 },
+    'Caminhonete':   { primeira: 15.00, adicional: 7.00 },
+    'Caminhão':      { primeira: 25.00, adicional: 10.00 }
+  };
+  var TOLERANCIA_MIN = 10;
+
+  // Dados do estacionamento (aparecem no recibo)
+  var ESTAC = { nome:'[NOME DO ESTACIONAMENTO]', endereco:'[ENDEREÇO]', cnpj:'[00.000.000/0001-00]' };
+
+  var $ = function(id){ return document.getElementById(id); };
+  var video = $('sdVideo'), scan = $('sdScan');
+  var ativo = false, rodando = false, detector = null, atual = null, timer = null, ocupado = false;
+  var buscaSeq = 0, pagamento = null, debounce = null;
+  var canvas = document.createElement('canvas'), ctx = canvas.getContext('2d', { willReadFrequently:true });
+
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function brl(v){ return Number(v).toLocaleString('pt-BR', { style:'currency', currency:'BRL' }); }
+  function fmtData(ms){ var d = new Date(ms); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+' · '+pad(d.getHours())+':'+pad(d.getMinutes()); }
+  function curto(ms){ var d = new Date(ms); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+' · '+pad(d.getHours())+':'+pad(d.getMinutes()); }
+  function aviso(t, info){ var a = $('sdAviso'); a.textContent = t || ''; a.className = 'sd-aviso' + (info ? ' info' : ''); }
+
+  /* ---------- Leitura da resposta da API ---------- */
+  function c(o, n){ return window.gipeApi ? gipeApi.campo(o, n) : undefined; }
+  function txt(v, nomes){
+    if (v === undefined || v === null) return '';
+    if (typeof v === 'object') v = c(v, nomes || ['nome','descricao','valor']);
+    return v === undefined || v === null ? '' : String(v);
+  }
+  function dataDe(v){
+    if (!v) return null;
+    if (typeof v === 'number') return v < 1e12 ? v * 1000 : v;
+    var t = Date.parse(String(v)); return isNaN(t) ? null : t;
+  }
+  function numero(v){
+    if (v === undefined || v === null || v === '' || typeof v === 'object') return null;
+    if (typeof v === 'number') return v;
+    var s = String(v).replace(/[^\d,.-]/g, '');
+    if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+    var n = parseFloat(s); return isNaN(n) ? null : n;
+  }
+  function simNao(v){
+    if (typeof v === 'boolean') return v;
+    if (typeof v === 'number') return v !== 0;
+    if (typeof v === 'string') return /^(true|sim|s|1|mensal|mensalista)$/i.test(v.trim());
+    return false;
+  }
+  // tira o registro de dentro de { dados: … } / [ … ]
+  function desembrulhar(d){
+    for (var i = 0; i < 4 && d && typeof d === 'object'; i++){
+      if (Array.isArray(d)){ d = d[0]; continue; }
+      if (c(d, ['placa']) !== undefined || d.id !== undefined) break;
+      var k = ['dados','data','resultado','result','value','item','registro','patio','movimento'].filter(function(x){ return d[x] && typeof d[x] === 'object'; })[0];
+      if (!k) break;
+      d = d[k];
+    }
+    return d && typeof d === 'object' ? d : null;
+  }
+  function normalizar(resp){
+    var it = desembrulhar(resp);
+    if (!it) return null;
+    var placa = txt(c(it, ['placa','placaVeiculo','numeroPlaca'])).toUpperCase().replace(/[^A-Z0-9]/g, '');
+    var antiga = /^[A-Z]{3}[0-9]{4}$/.test(placa);
+    var modelo = txt(c(it, ['modelo','modeloVeiculo','descricaoModelo','nomeModelo']));
+    var cor = txt(c(it, ['cor','corVeiculo','descricaoCor']));
+    var catBruta = c(it, ['categoria','categoriaId','idCategoria','tipoVeiculo','categoriaVeiculo']);
+    var catId = gipeApi.catDaApi(catBruta);
+    var id = c(it, ['id','idPatio','patioId','idMovimento','movimentoId','idEntrada','entradaId']);
+    return {
+      id: id !== undefined && typeof id !== 'object' ? id : null,
+      placa: placa,
+      placaFmt: antiga ? placa.slice(0,3) + '-' + placa.slice(3) : placa,
+      sequencial: txt(c(it, ['sequencial','codigoTicket','numeroTicket','ticket','numero'])),
+      veiculo: [modelo, cor].filter(Boolean).join(' · ').toUpperCase(),
+      categoria: catId ? gipeApi.nomeCat(catId) : txt(catBruta),
+      entrada: dataDe(c(it, ['dataEntrada','dataHoraEntrada','entrada','horaEntrada','dataHora','entradaEm','criadoEm','createdAt'])),
+      permApi: txt(c(it, ['permanencia','tempoPermanencia','tempo','duracao'])),
+      valorApi: numero(c(it, ['valor','valorTotal','valorAPagar','valorCalculado','valorCobrar','valorCobrado','total','valorDevido'])),
+      mensalista: simNao(c(it, ['mensalista','isMensalista','ehMensalista']))
+    };
+  }
+
+  function calcular(t){
+    var min = t.entrada ? Math.max(0, Math.floor((Date.now() - t.entrada) / 60000)) : null;
+    var perm = min !== null ? Math.floor(min/60) + 'h ' + pad(min % 60) + 'min' : (t.permApi || '—');
+    var valor = t.valorApi, estimado = false;
+    if (valor === null){
+      if (t.mensalista) valor = 0;
+      else if (min !== null && TARIFAS[t.categoria]){
+        var tf = TARIFAS[t.categoria]; valor = 0; estimado = true;
+        if (min > TOLERANCIA_MIN){ var h = Math.ceil(min / 60); valor = tf.primeira + Math.max(0, h - 1) * tf.adicional; }
+      }
+    }
+    return { perm: perm, valor: valor === null ? null : Math.round(valor * 100) / 100, estimado: estimado };
+  }
+
+  /* ---------- Tela ---------- */
+  function atualizarBotao(){
+    var btn = $('sdConfirmar');
+    if (!atual){ btn.disabled = true; btn.textContent = 'Confirmar Saída'; return; }
+    var cc = calcular(atual), cobrar = cc.valor > 0;
+    document.querySelectorAll('.sd-pag').forEach(function(b){ b.disabled = !cobrar; });
+    btn.disabled = atual.id === null || cc.valor === null || (cobrar && !pagamento);
+    btn.textContent = cc.valor === null ? 'Confirmar Saída'
+      : (cobrar ? (pagamento ? 'Confirmar Saída · ' + brl(cc.valor) : 'Escolha a forma de pagamento') : 'Confirmar Saída · sem cobrança');
+  }
+
+  function mostrar(t){
+    atual = t; clearInterval(timer);
+    if (!t){
+      ['sdVeic','sdCat','sdEntrada','sdPerm','sdValor'].forEach(function(id){ $(id).textContent = '—'; });
+      atualizarBotao(); return;
+    }
+    function tick(){
+      var cc = calcular(t);
+      $('sdPerm').textContent = cc.perm;
+      $('sdValor').textContent = cc.valor === null ? '—' : (cc.valor === 0 && t.mensalista ? 'Mensalista' : brl(cc.valor));
+      atualizarBotao();
+    }
+    $('sdVeic').textContent = t.veiculo || '—';
+    $('sdCat').textContent = t.categoria || '—';
+    $('sdEntrada').textContent = t.entrada ? fmtData(t.entrada) : '—';
+    tick(); timer = setInterval(tick, 30000);
+    if (t.id === null) aviso('A API não informou o identificador do registro — não é possível dar saída.');
+    else if (calcular(t).valor === null) aviso('A API não informou o valor a cobrar.');
+    else if (calcular(t).estimado) aviso('Valor estimado pela tabela do app (a API não informou o valor).', true);
+  }
+
+  function buscar(criterio){
+    if (!window.gipeApi) return Promise.resolve(null);
+    var seq = ++buscaSeq, qs, nao;
+    if (criterio.token){ qs = 'token=' + encodeURIComponent(criterio.token); nao = 'Nenhum veículo no pátio com este QR Code.'; }
+    else if (criterio.placa){ qs = 'placa=' + encodeURIComponent(criterio.placa); nao = 'Nenhum veículo no pátio com esta placa.'; }
+    else { qs = 'sequencial=' + encodeURIComponent(criterio.sequencial); nao = 'Nenhum veículo no pátio com este ticket.'; }
+    aviso('Buscando…', true); mostrar(null);
+    return gipeApi.get('/patio/saida?' + qs).then(function(d){
+      if (seq !== buscaSeq) return null;
+      var t = normalizar(d);
+      if (!t || (!t.placa && t.id === null)){ aviso(nao); mostrar(null); return null; }
+      aviso('');
+      if (!criterio.placa) $('sdPlaca').value = t.placa;
+      if (!criterio.sequencial) $('sdTicket').value = t.sequencial;
+      mostrar(t);
+      return t;
+    }).catch(function(e){
+      if (seq !== buscaSeq) return null;
+      aviso(e && e.status === 404 ? nao : 'Não foi possível consultar: ' + gipeApi.erroRede(e) + '.');
+      mostrar(null); return null;
+    });
+  }
+
+  /* ---------- QR Code ---------- */
+  // Aceita o link do comprovante (".../c/?t=XXXX"), o token puro (ex.: 8F3K2Q7X) e, por compatibilidade, "GIPE-SAIDA:XXXX" ou ".../c/XXXX"
+  function extrairToken(texto){
+    texto = String(texto || '').trim();
+    var m = texto.match(/[?&]t=([A-Z0-9]{4,32})(?:[&#]|$)/i) || texto.match(/^GIPE-SAIDA:([A-Z0-9]{4,32})$/i) || texto.match(/\/c\/([A-Z0-9]{4,32})(?:[/?#]|$)/i) || texto.match(/^([A-Z0-9]{4,32})$/i);
+    return m ? m[1] : null;
+  }
+
+  function aoLer(texto){
+    var tk = extrairToken(texto);
+    if (!tk){ feedbackErro('QR Code não é um ticket GIPE.'); return; }
+    parar();
+    if (navigator.vibrate) navigator.vibrate(80);
+    $('sdPlaca').disabled = true; $('sdTicket').disabled = true;
+    $('sdOkMsg').textContent = 'Buscando ticket…';
+    scan.classList.remove('falhou'); scan.classList.add('lido');
+    buscar({ token: tk }).then(function(t){
+      $('sdOkMsg').textContent = t ? 'Ticket encontrado' : 'Ticket não encontrado';
+      scan.classList.toggle('falhou', !t);
+    });
+  }
+  function feedbackErro(msg){
+    scan.classList.add('erro'); aviso(msg);
+    setTimeout(function(){ scan.classList.remove('erro'); }, 1200);
+  }
+
+  /* ---------- Câmera (a mesma da entrada: não pede permissão de novo) ---------- */
+  function msgScan(t){ $('sdScanMsg').textContent = t; }
+  function iniciar(){
+    if (!ativo || rodando || scan.classList.contains('lido')) return;
+    if (window.gipeAuth && !gipeAuth.logado()) return;
+    if (!window.gipeScan || !gipeScan.obterStream){ msgScan('Câmera indisponível'); return; }
+    msgScan('Abrindo câmera…');
+    gipeScan.obterStream().then(function(s){
+      if (!ativo || scan.classList.contains('lido')) return;
+      video.muted = true; video.setAttribute('playsinline', '');
+      video.srcObject = s;
+      var p = video.play(); if (p && p.catch) p.catch(function(){});
+      rodando = true; msgScan('');
+      if (!detector && 'BarcodeDetector' in window){
+        try { detector = new BarcodeDetector({ formats:['qr_code'] }); } catch(e){ detector = null; }
+      }
+      requestAnimationFrame(loop);
+    }).catch(function(err){
+      msgScan(err && err.name === 'NotAllowedError' ? 'Permita o acesso à câmera e toque aqui' : 'Não foi possível abrir a câmera — toque para tentar');
+    });
+  }
+  function parar(){
+    rodando = false; video.srcObject = null;
+    if (window.gipeScan) gipeScan.fechar();
+  }
+  function loop(){
+    if (!rodando) return;
+    if (!ocupado && video.readyState >= 2){
+      ocupado = true;
+      ler().then(function(t){ ocupado = false; if (t && rodando) aoLer(t); }).catch(function(){ ocupado = false; });
+    }
+    requestAnimationFrame(loop);
+  }
+  function ler(){
+    if (detector) return detector.detect(video).then(function(r){ return r.length ? r[0].rawValue : null; });
+    if (typeof jsQR !== 'function') return Promise.resolve(null);
+    var w = video.videoWidth, h = video.videoHeight, s = Math.min(w, h), alvo = 480;
+    if (!s) return Promise.resolve(null);
+    canvas.width = alvo; canvas.height = alvo;
+    ctx.drawImage(video, (w - s)/2, (h - s)/2, s, s, 0, 0, alvo, alvo);
+    var r = jsQR(ctx.getImageData(0, 0, alvo, alvo).data, alvo, alvo, { inversionAttempts:'dontInvert' });
+    return Promise.resolve(r ? r.data : null);
+  }
+
+  /* ---------- Limpar / ler outro ---------- */
+  function selPag(nome){
+    pagamento = nome || null;
+    document.querySelectorAll('.sd-pag').forEach(function(x){ x.setAttribute('aria-pressed', x.dataset.pag === pagamento); });
+    atualizarBotao();
+  }
+  function limpar(){
+    buscaSeq++; clearTimeout(debounce);
+    $('sdPlaca').value = ''; $('sdTicket').value = '';
+    $('sdPlaca').disabled = false; $('sdTicket').disabled = false;
+    aviso(''); scan.classList.remove('lido', 'falhou');
+    selPag(null); mostrar(null);
+    iniciar();
+  }
+  scan.addEventListener('click', function(){ if (scan.classList.contains('lido')) limpar(); else iniciar(); });
+
+  /* ---------- Busca manual ---------- */
+  $('sdPlaca').addEventListener('input', function(e){
+    var s = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7);
+    e.target.value = s;
+    if (s) $('sdTicket').value = '';
+    if (/^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(s)){ selPag(null); buscar({ placa: s }); }
+    else if (atual || $('sdAviso').textContent){ buscaSeq++; aviso(''); mostrar(null); }
+  });
+  function buscarTicket(){
+    clearTimeout(debounce);
+    var s = $('sdTicket').value;
+    if (s){ selPag(null); buscar({ sequencial: s }); }
+  }
+  $('sdTicket').addEventListener('input', function(e){
+    var s = e.target.value.replace(/\D/g, '').slice(0, 10);
+    e.target.value = s;
+    if (s) $('sdPlaca').value = '';
+    clearTimeout(debounce);
+    if (atual || $('sdAviso').textContent){ buscaSeq++; aviso(''); mostrar(null); }
+    if (s) debounce = setTimeout(buscarTicket, 900);   // busca quando parar de digitar
+  });
+  $('sdTicket').addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); buscarTicket(); e.target.blur(); } });
+
+  /* ---------- Pagamento ---------- */
+  document.querySelectorAll('.sd-pag').forEach(function(b){
+    b.addEventListener('click', function(){ selPag(b.dataset.pag); });
+  });
+
+  /* ---------- Confirmar saída ---------- */
+  $('sdConfirmar').addEventListener('click', function(){
+    if (!atual || atual.id === null) return;
+    var t = atual, cc = calcular(t), btn = $('sdConfirmar');
+    if (cc.valor === null) return;
+    var forma = cc.valor > 0 ? FORMAS[pagamento] : (pagamento ? FORMAS[pagamento] : null);
+    btn.disabled = true; btn.textContent = 'Registrando saída…';
+    gipeApi.post('/patio/' + encodeURIComponent(t.id) + '/saida', { valor: cc.valor, formaPagamento: forma })
+      .then(function(){
+        var saida = Date.now();
+        parar(); clearInterval(timer);
+        $('sdRPagto').textContent = cc.valor > 0 ? 'Pagamento recebido · ' + pagamento : 'Sem cobrança';
+        $('sdRNum').textContent = 'Nº ' + (t.sequencial || '—');
+        $('sdRValor').textContent = brl(cc.valor);
+        $('sdRPlaca').textContent = t.placaFmt || '—';
+        $('sdREnt').textContent = t.entrada ? curto(t.entrada) : '—';
+        $('sdRSai').textContent = curto(saida);
+        $('sdRPerm').textContent = cc.perm;
+        $('sdRVeic').textContent = t.veiculo || '—';
+        $('sdView').hidden = true; $('sdRecibo').hidden = false;
+        window.scrollTo(0, 0);
+      })
+      .catch(function(e){
+        aviso('Saída NÃO registrada: ' + gipeApi.erroRede(e) + '.');
+        atualizarBotao();
+      });
+  });
+
+  $('sdProxima').addEventListener('click', function(){
+    $('sdRecibo').hidden = true; $('sdView').hidden = false;
+    limpar(); window.scrollTo(0, 0);
+  });
+
+  $('sdEstNome').textContent = ESTAC.nome;
+  $('sdEstEnd').textContent = ESTAC.endereco + ' · CNPJ ' + ESTAC.cnpj;
+
+  /* ---------- Usado pelo menu ---------- */
+  window.gipeSaida = {
+    abrir: function(){ ativo = true; if ($('sdRecibo').hidden) iniciar(); },
+    fechar: function(){ ativo = false; parar(); }
+  };
+  if (!$('colSaida').hidden) window.gipeSaida.abrir();
+})();
+</script>
+
+<script>
+/* =====================================================================
+   PWA · instalação e funcionamento offline
+   ===================================================================== */
+(function(){
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')){
+    window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
+  }
+
+  var btn = document.getElementById('btnInstalar'), pedido = null;
+  var instalado = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  var ios = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
+  function aviso(txt){
+    var el = document.getElementById('toast'); if (!el) return;
+    el.textContent = txt; el.classList.add('show');
+    clearTimeout(aviso.t); aviso.t = setTimeout(function(){ el.classList.remove('show'); }, 6000);
+  }
+
+  // Android / Chrome / Edge: o navegador avisa que o app pode ser instalado
+  window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); pedido = e; if (!instalado) btn.hidden = false; });
+  window.addEventListener('appinstalled', function(){ instalado = true; pedido = null; btn.hidden = true; aviso('GIPE instalado na tela inicial.'); });
+
+  // iPhone / iPad (Safari): não há botão automático, então mostramos as instruções
+  if (ios && !instalado) btn.hidden = false;
+
+  btn.addEventListener('click', function(){
+    if (pedido){
+      pedido.prompt();
+      pedido.userChoice.then(function(r){ if (r.outcome === 'accepted') btn.hidden = true; pedido = null; });
+    } else if (ios){
+      aviso('No Safari, toque em Compartilhar (quadrado com seta) e depois em "Adicionar à Tela de Início".');
+    } else {
+      aviso('Use o menu do navegador e escolha "Instalar app" ou "Adicionar à tela inicial".');
+    }
+  });
+})();
+</script>
+</body>
+</html>
