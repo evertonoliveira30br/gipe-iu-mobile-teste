@@ -10,6 +10,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
+<!-- Gera o PDF do comprovante -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root{
     --ink:#14181F; --muted:#4A5260; --line:#DADDE2; --soft:#F4F5F2; --white:#FFFFFF;
@@ -46,6 +48,12 @@
   .qr svg{width:100%;height:100%;display:block}
   .qrsec b{font-size:15px}
   .qrsec span{font-size:13px;color:var(--muted)}
+  .acts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 16px 0}
+  .act{height:54px;border-radius:12px;background:#fff;border:1px solid var(--line);color:var(--ink);text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:600;font-family:inherit;padding:0 8px;cursor:pointer;text-align:center;line-height:1.2}
+  .act.wpp{background:#25D366;border-color:#25D366;color:#0B3D20}
+  .act:disabled{opacity:.6;cursor:wait}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,140px);background:var(--ink);color:#fff;font-weight:600;font-size:14px;padding:12px 16px;border-radius:12px;transition:transform .25s;z-index:20;max-width:calc(100% - 32px);text-align:center}
+  .toast.show{transform:translate(-50%,0)}
   .rod{margin-top:auto;padding:16px 16px calc(18px + env(safe-area-inset-bottom));text-align:center;font-size:12px;color:var(--muted)}
   .msg{margin:-40px 16px 0;background:#fff;border-radius:18px;padding:28px 20px;border:1px solid var(--line);text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center;font-size:15px;line-height:1.45;color:var(--muted)}
   .msg b{color:var(--ink);font-size:18px}
@@ -88,6 +96,10 @@
         <div><span class="k">Categoria</span><b id="categoria">—</b></div>
       </div>
     </div>
+    <div class="acts">
+      <button class="act" id="btnPdf" type="button"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Baixar comprovante</button>
+      <a class="act wpp" id="btnWpp" href="#" target="_blank" rel="noopener"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8s-.4-.1-.6.1-.7.8-.8 1-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.3-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5a1 1 0 0 0-.7.3 3 3 0 0 0-.9 2.2 5.2 5.2 0 0 0 1.1 2.7 11.8 11.8 0 0 0 4.5 4c1.7.7 2.3.8 3.2.6a2.7 2.7 0 0 0 1.8-1.2 2.2 2.2 0 0 0 .1-1.3c0-.1-.2-.2-.4-.3z"/></svg>Contato estacionamento</a>
+    </div>
     <div class="aviso" id="aviso" hidden></div>
     <div class="qrsec" id="qrSec">
       <div class="qrbox"><div class="qr" id="qr" role="img" aria-label="QR Code para a saída"></div></div>
@@ -98,12 +110,15 @@
 
   <div class="rod">GIPE · Estacionamento</div>
 </div>
+<div class="toast" id="toast" role="status"></div>
 
 <script>
 (function(){
   var API = 'https://api.gipepark.com.br/api/v1/patio/comprovante/cliente?token=';
   var ATUALIZA_API_MS = 5 * 60 * 1000;   // valor: consulta a API a cada 5 minutos
   var ATUALIZA_TEMPO_MS = 60 * 1000;     // permanência: recalcula na tela a cada 1 minuto
+  // WhatsApp do estacionamento (por enquanto fixo; formato internacional, só números)
+  var WHATSAPP_ESTACIONAMENTO = '5511979742680';
   var CATEGORIAS = { 1:'Moto', 2:'Carro pequeno', 3:'Carro médio', 4:'Carro grande', 5:'Caminhonete', 6:'Caminhão' };
 
   var $ = function(id){ return document.getElementById(id); };
@@ -206,6 +221,81 @@
     atualizarTempo();
   }
 
+  /* ---------- Contato pelo WhatsApp ---------- */
+  function atualizarWhatsapp(){
+    var msg = 'Olá! Estou com um veículo no estacionamento'
+      + (dados && dados.placa ? ' — placa ' + dados.placa : '')
+      + (dados && dados.ticket ? ', ticket nº ' + dados.ticket : '') + '.';
+    $('btnWpp').href = 'https://wa.me/' + WHATSAPP_ESTACIONAMENTO + '?text=' + encodeURIComponent(msg);
+  }
+
+  /* ---------- Baixar comprovante em PDF ---------- */
+  function toast(t){ var el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(function(){ el.classList.remove('show'); }, 3200); }
+  function semAcento(s){ return String(s || ''); }
+  function gerarPdf(){
+    var J = window.jspdf && window.jspdf.jsPDF;
+    if (!J || !dados) return null;
+    atualizarTempo();
+    var d = dados, W = 80, agora = Date.now();
+    var doc = new J({ unit:'mm', format:[W, 165] }), y;
+    // cabeçalho
+    doc.setFillColor(20, 24, 31); doc.rect(0, 0, W, 26, 'F');
+    doc.setTextColor(242, 183, 5); doc.setFont('helvetica', 'bold'); doc.setFontSize(8);
+    doc.text('COMPROVANTE DE ENTRADA', 6, 9);
+    doc.setTextColor(255, 255, 255); doc.setFontSize(12);
+    doc.text(semAcento(d.estNome || 'Estacionamento'), 6, 16, { maxWidth: W - 12 });
+    if (d.estEnd){ doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.text(semAcento(d.estEnd), 6, 22, { maxWidth: W - 12 }); }
+    // destaque: permanência e valor
+    y = 34;
+    doc.setTextColor(74, 82, 96); doc.setFont('helvetica', 'normal'); doc.setFontSize(7);
+    doc.text(d.saida ? 'SAÍDA REGISTRADA' : 'VEÍCULO NO PÁTIO', 6, y);
+    doc.text('Ticket Nº ' + (d.ticket || '—'), W - 6, y, { align:'right' });
+    y += 9;
+    doc.setTextColor(20, 24, 31); doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
+    doc.text($('tempo').textContent, W / 2, y, { align:'center' });
+    y += 6;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(74, 82, 96);
+    var linhaValor = d.mensalista ? 'Coberto pelo plano · nada a pagar'
+      : (d.saida ? 'Valor pago: ' : 'Valor até agora: ') + (d.valor === null ? '—' : brl(d.valor));
+    doc.text(linhaValor, W / 2, y, { align:'center' });
+    y += 4;
+    doc.setDrawColor(218, 221, 226); doc.line(6, y, W - 6, y);
+    y += 7;
+    function linha(rot, val){
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(74, 82, 96); doc.text(rot.toUpperCase(), 6, y);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10.5); doc.setTextColor(20, 24, 31); doc.text(String(val || '—'), 6, y + 5, { maxWidth: W - 12 });
+      y += 11;
+    }
+    linha('Placa', d.placa);
+    linha('Entrada', d.entrada ? dataHora(d.entrada) : '—');
+    linha('Veículo', d.veiculo);
+    linha('Categoria', d.categoria);
+    // QR Code (vetorial) com o link do comprovante
+    if (typeof qrcode === 'function' && !d.saida){
+      var q = qrcode(0, 'M'); q.addData(location.href); q.make();
+      var n = q.getModuleCount(), lado = 32, c = lado / n, x0 = (W - lado) / 2, y0 = y;
+      doc.setFillColor(20, 24, 31);
+      for (var r = 0; r < n; r++) for (var k = 0; k < n; k++) if (q.isDark(r, k)) doc.rect(x0 + k * c, y0 + r * c, c + 0.02, c + 0.02, 'F');
+      y = y0 + lado + 5;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(20, 24, 31);
+      doc.text('Apresente este código na saída', W / 2, y, { align:'center' });
+      y += 4.5;
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(74, 82, 96);
+      doc.text('Código ' + token, W / 2, y, { align:'center' });
+      y += 4;
+    }
+    doc.setFontSize(6.5); doc.setTextColor(120, 127, 138);
+    doc.text('Emitido em ' + dataHora(agora) + ' · valores sujeitos a atualização', W / 2, 160, { align:'center' });
+    return doc;
+  }
+  $('btnPdf').addEventListener('click', function(){
+    if (!dados) return;
+    var doc = gerarPdf();
+    if (!doc){ toast('Sem internet para gerar o PDF. Tente novamente.'); return; }
+    doc.save('comprovante-' + (dados.placa || 'veiculo').replace(/[^A-Z0-9]/gi, '') + (dados.ticket ? '-' + dados.ticket : '') + '.pdf');
+    toast('Comprovante salvo em PDF');
+  });
+
   function desenharQR(){
     var el = $('qr'); $('codigo').textContent = token;
     if (typeof qrcode !== 'function'){ el.textContent = token; return; }
@@ -228,7 +318,7 @@
       })
       .then(function(n){
         dados = n; ultimaConsulta = Date.now(); aviso('');
-        render();
+        render(); atualizarWhatsapp();
         if (encerrado) pararAtualizacoes();
       })
       .catch(function(e){
@@ -251,6 +341,7 @@
     return;
   }
   desenharQR();
+  atualizarWhatsapp();
   consultar();
   timerApi = setInterval(function(){ if (!encerrado) consultar(); }, ATUALIZA_API_MS);
   timerTempo = setInterval(atualizarTempo, ATUALIZA_TEMPO_MS);
