@@ -1,0 +1,403 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14181F">
+<meta name="robots" content="noindex">
+<title>Contrato de Mensalista</title>
+<link rel="icon" type="image/png" href="../app/icons/favicon-48.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&display=swap">
+<!-- Gera o PDF do contrato -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --ink:#14181F; --muted:#4A5260; --line:#DADDE2; --soft:#F4F5F2;
+    --green:#1E6B3A; --green2:#2FB566; --yellow:#F2B705; --red:#B3261E;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  html,body{margin:0;background:var(--soft);color:var(--ink);font-family:'Archivo',system-ui,sans-serif;-webkit-text-size-adjust:100%}
+  .app{max-width:720px;margin:0 auto;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column}
+  .top{background:var(--ink);color:#fff;padding:calc(22px + env(safe-area-inset-top)) 18px 56px;display:flex;flex-direction:column;gap:6px}
+  .kick{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--yellow)}
+  .tit{font-size:20px;font-weight:700;line-height:1.25}
+  .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  .chip{font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.1);color:#D6DBE3}
+  .chip.pend{background:rgba(242,183,5,.18);color:#FFD75E}
+  .chip.ok{background:rgba(47,181,102,.2);color:#7BE0A4}
+  .chip.exp{background:rgba(179,38,30,.25);color:#FFB4AE}
+
+  .card{margin:-40px 16px 0;background:#fff;border-radius:18px;border:1px solid var(--line);overflow:hidden}
+  .barra{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);background:#FAFAF8}
+  .barra span{font-size:13px;color:var(--muted)}
+  .bt{height:44px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);font-family:inherit;font-size:14px;font-weight:600;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:0 14px;cursor:pointer;white-space:nowrap}
+  .bt:disabled{opacity:.45;cursor:default}
+  .texto{padding:18px 18px 8px;font-size:15px;line-height:1.6;color:#262B33}
+  .texto h2{font-size:15.5px;margin:22px 0 6px;letter-spacing:.01em}
+  .texto h2:first-child{margin-top:0}
+  .texto p{margin:0 0 10px}
+  .texto p.item{padding-left:14px}
+  .texto .cab{font-weight:700;text-align:center;font-size:15px;margin-bottom:16px}
+  .fim{display:flex;align-items:center;gap:10px;margin:8px 18px 18px;padding-top:14px;border-top:1px dashed var(--line);font-size:12px;color:var(--muted);word-break:break-all}
+
+  .aceite{margin:12px 16px 0;background:#fff;border-radius:18px;border:1px solid var(--line);padding:18px;display:flex;flex-direction:column;gap:14px}
+  .aceite h3{margin:0;font-size:17px}
+  .aceite .dica{font-size:13px;color:var(--muted);line-height:1.45;margin:0}
+  .check{display:flex;gap:12px;align-items:flex-start;font-size:14.5px;line-height:1.45;cursor:pointer}
+  .check input{width:22px;height:22px;margin:1px 0 0;flex-shrink:0;accent-color:var(--ink)}
+  .fld{display:flex;flex-direction:column;gap:6px}
+  .fld label{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+  .fld input{height:50px;border:1px solid var(--line);border-radius:12px;padding:0 14px;font-size:16px;font-family:inherit;color:var(--ink);background:#fff}
+  .fld input:focus{outline:2px solid var(--ink);outline-offset:-1px}
+  .fld input[aria-invalid="true"]{border-color:#C2410C}
+  .err{font-size:13px;color:#C2410C}
+  .bt-pri{height:54px;border-radius:12px;border:0;background:var(--yellow);color:var(--ink);font-family:inherit;font-size:16px;font-weight:700;cursor:pointer}
+  .bt-pri:disabled{opacity:.45;cursor:default}
+  .aceite.bloq .check,.aceite.bloq .fld{opacity:.5}
+
+  .ok{margin:12px 16px 0;background:#E8F6EE;border:1px solid #BFE6CF;border-radius:18px;padding:16px;display:flex;gap:12px;align-items:flex-start;color:var(--green)}
+  .ok i{flex-shrink:0;width:26px;height:26px;border-radius:13px;background:var(--green2);color:#fff;display:flex;align-items:center;justify-content:center}
+  .ok div{display:flex;flex-direction:column;gap:3px}
+  .ok b{font-size:15.5px} .ok span{font-size:13.5px;line-height:1.45;color:#24543A}
+
+  .msg{margin:-40px 16px 0;background:#fff;border-radius:18px;padding:28px 20px;border:1px solid var(--line);text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center;font-size:15px;line-height:1.45;color:var(--muted)}
+  .msg b{color:var(--ink);font-size:18px}
+  .rod{margin-top:auto;padding:20px 16px calc(18px + env(safe-area-inset-bottom));text-align:center;font-size:12px;color:var(--muted)}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,140px);background:var(--ink);color:#fff;font-weight:600;font-size:14px;padding:12px 16px;border-radius:12px;transition:transform .25s;z-index:20;max-width:calc(100% - 32px);text-align:center}
+  .toast.show{transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <span class="kick">Contrato de mensalista</span>
+    <span class="tit" id="titulo">Contrato</span>
+    <div class="meta" id="meta" hidden>
+      <span class="chip" id="chipStatus"></span>
+      <span class="chip" id="chipVersao"></span>
+    </div>
+  </div>
+
+  <div class="msg" id="msg">
+    <b id="msgTit">Carregando contrato…</b>
+    <span id="msgTxt">Aguarde um instante.</span>
+  </div>
+
+  <div id="conteudo" hidden>
+    <div class="card">
+      <div class="barra">
+        <span id="geradoEm"></span>
+        <button class="bt" id="btnPdf" type="button"><svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Baixar PDF</button>
+      </div>
+      <div class="texto" id="texto"></div>
+      <div class="fim" id="fimTexto"><svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg><span>Código de verificação: <span id="hash"></span></span></div>
+    </div>
+
+    <form class="aceite bloq" id="aceite" novalidate hidden>
+      <h3>Aceite do contrato</h3>
+      <p class="dica" id="dica">Leia o contrato até o final para liberar o aceite.</p>
+      <label class="check"><input type="checkbox" id="concordo" disabled><span>Li e concordo com todas as cláusulas deste contrato.</span></label>
+      <div class="fld">
+        <label for="doc">CPF ou CNPJ do contratante</label>
+        <input id="doc" inputmode="numeric" autocomplete="off" placeholder="000.000.000-00" maxlength="18" disabled>
+      </div>
+      <span class="err" id="err" role="alert"></span>
+      <button class="bt-pri" type="submit" id="btnAceitar" disabled>Aceitar contrato</button>
+    </form>
+
+    <div class="ok" id="okAceite" role="status" hidden>
+      <i><svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg></i>
+      <div><b>Contrato aceito</b><span id="okTxt"></span></div>
+    </div>
+  </div>
+
+  <div class="rod">GIPE · Gestão Inteligente Para Estacionamentos</div>
+</div>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+  var BASE = 'https://api.gipepark.com.br/api/v1';
+  // Link do cliente: contrato/?t=TOKEN → consulta pública pelo token
+  var API_CONTRATO_TOKEN = BASE + '/mensalista/contrato/cliente?token=';
+  // Link interno: contrato/?id=4 → GET /mensalista/{id}/contrato com o login do app (mesmo aparelho)
+  var API_CONTRATO_ID = function(id){ return BASE + '/mensalista/' + encodeURIComponent(id) + '/contrato'; };
+  var API_ACEITAR = BASE + '/mensalista/contrato/cliente/aceitar';
+
+  var $ = function(id){ return document.getElementById(id); };
+  var qs = new URLSearchParams(location.search);
+  var token = (qs.get('t') || qs.get('token') || '').trim();
+  var idMensalista = (qs.get('id') || '').trim();
+  var dados = null, leuAteFim = false;
+
+  function pad(n){ return String(n).padStart(2, '0'); }
+  function data(v){ if (!v) return null; var t = Date.parse(String(v)); return isNaN(t) ? null : t; }
+  function dataHora(ms){ var d = new Date(ms); return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear() + ' às ' + pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+  function dataCurta(ms){ var d = new Date(ms); return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear(); }
+  function toast(t){ var el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(function(){ el.classList.remove('show'); }, 3200); }
+  function mensagem(tit, txt){ $('msgTit').textContent = tit; $('msgTxt').textContent = txt || ''; $('msg').hidden = false; $('conteudo').hidden = true; }
+
+  function campo(obj, nomes){
+    if (!obj || typeof obj !== 'object') return undefined;
+    var fontes = [obj, obj.dados, obj.data, obj.result, obj.resultado, obj.contrato];
+    for (var f = 0; f < fontes.length; f++){
+      var o = fontes[f]; if (!o || typeof o !== 'object' || Array.isArray(o)) continue;
+      var ch = Object.keys(o);
+      for (var n = 0; n < nomes.length; n++) for (var k = 0; k < ch.length; k++)
+        if (ch[k].toLowerCase() === nomes[n].toLowerCase() && o[ch[k]] !== null && o[ch[k]] !== '') return o[ch[k]];
+    }
+    return undefined;
+  }
+  function txt(v){ return v === undefined || v === null || typeof v === 'object' ? '' : String(v); }
+
+  function normalizar(r){
+    if (Array.isArray(r)) r = r[0];
+    if (!r || typeof r !== 'object') return null;
+    var conteudo = txt(campo(r, ['conteudo','texto','corpo','content']));
+    if (!conteudo) return null;
+    return {
+      titulo: txt(campo(r, ['titulo','title'])) || 'Contrato',
+      conteudo: conteudo.replace(/\r\n?/g, '\n'),
+      versao: txt(campo(r, ['versao','version'])),
+      hash: txt(campo(r, ['hash','codigoVerificacao'])),
+      status: campo(r, ['status']),
+      geracao: data(campo(r, ['dataGeracao','geradoEm','dataCriacao'])),
+      expira: data(campo(r, ['tokenExpiracao','expiraEm','dataExpiracao'])),
+      aceite: data(campo(r, ['dataAceite','aceitoEm'])),
+      aceiteDoc: txt(campo(r, ['aceiteDocumento','documentoAceite'])),
+      token: txt(campo(r, ['token','tokenAceite','tokenContrato']))
+    };
+  }
+
+  /* ---------- Texto do contrato (cláusulas como títulos) ---------- */
+  function esc(s){ return s.replace(/[&<>"]/g, function(c){ return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[c]; }); }
+  function blocos(conteudo, titulo){
+    var linhas = conteudo.split('\n'), out = [], primeira = true;
+    linhas.forEach(function(l){
+      var s = l.trim(); if (!s) return;
+      if (primeira){ primeira = false; if (s.toUpperCase() === String(titulo).toUpperCase() || /^CONTRATO\b/.test(s)){ out.push({ t:'cab', s:s }); return; } }
+      if (/^CL[ÁA]USULA\s+\d+/i.test(s)) out.push({ t:'h', s:s });
+      else if (/^[-•]\s*/.test(s)) out.push({ t:'item', s:s.replace(/^[-•]\s*/, '• ') });
+      else out.push({ t:'p', s:s });
+    });
+    return out;
+  }
+  function renderTexto(d){
+    $('texto').innerHTML = blocos(d.conteudo, d.titulo).map(function(b){
+      if (b.t === 'cab') return '<div class="cab">' + esc(b.s) + '</div>';
+      if (b.t === 'h') return '<h2>' + esc(b.s) + '</h2>';
+      return '<p' + (b.t === 'item' ? ' class="item"' : '') + '>' + esc(b.s) + '</p>';
+    }).join('');
+  }
+
+  /* ---------- Estado (pendente / aceito / expirado) ---------- */
+  function aceito(){ return !!(dados && dados.aceite); }
+  function expirado(){ return !!(dados && !aceito() && dados.expira && Date.now() > dados.expira); }
+  function render(){
+    var d = dados;
+    $('msg').hidden = true; $('conteudo').hidden = false;
+    document.title = d.titulo;
+    $('titulo').textContent = d.titulo;
+    $('meta').hidden = false;
+    $('chipVersao').textContent = d.versao ? 'Versão ' + d.versao : '';
+    $('chipVersao').hidden = !d.versao;
+    var cs = $('chipStatus');
+    if (aceito()){ cs.className = 'chip ok'; cs.textContent = 'Aceito'; }
+    else if (expirado()){ cs.className = 'chip exp'; cs.textContent = 'Link expirado'; }
+    else { cs.className = 'chip pend'; cs.textContent = 'Aguardando aceite'; }
+    $('geradoEm').textContent = d.geracao ? 'Gerado em ' + dataCurta(d.geracao) : '';
+    $('hash').textContent = d.hash || '—';
+    $('fimTexto').hidden = !d.hash;
+    renderTexto(d);
+
+    $('okAceite').hidden = !aceito();
+    if (aceito()) $('okTxt').textContent = 'Aceite registrado em ' + dataHora(d.aceite) + (d.aceiteDoc ? ' · documento ' + d.aceiteDoc : '') + '.';
+    $('aceite').hidden = aceito();
+    if (!aceito()){
+      if (expirado()){
+        $('dica').textContent = 'O prazo para aceite deste link terminou em ' + dataHora(d.expira) + '. Peça um novo link ao estacionamento.';
+        travar(true);
+      } else {
+        if (d.expira) $('dica').textContent = 'Leia o contrato até o final para liberar o aceite. Prazo: até ' + dataHora(d.expira) + '.';
+        observarFim();
+      }
+    }
+  }
+  function travar(sim){
+    $('aceite').classList.toggle('bloq', sim);
+    $('concordo').disabled = sim; $('doc').disabled = sim;
+    atualizarBotao();
+  }
+  function atualizarBotao(){ $('btnAceitar').disabled = !leuAteFim || expirado() || !$('concordo').checked; }
+
+  // libera o aceite quando a pessoa chega ao fim do texto
+  function liberar(){
+    if (leuAteFim) return;
+    leuAteFim = true; travar(false);
+    $('dica').textContent = 'Marque a caixa abaixo e informe o seu CPF ou CNPJ para aceitar.';
+  }
+  function observarFim(){
+    var alvo = $('fimTexto').hidden ? $('texto').lastElementChild : $('fimTexto');
+    if (!alvo){ liberar(); return; }
+    if ('IntersectionObserver' in window){
+      var io = new IntersectionObserver(function(es){ es.forEach(function(e){ if (e.isIntersecting){ liberar(); io.disconnect(); } }); });
+      io.observe(alvo);
+    } else liberar();
+  }
+
+  /* ---------- Documento (CPF / CNPJ) ---------- */
+  function mascaraDoc(v){
+    var d = v.replace(/\D/g, '').slice(0, 14);
+    if (d.length <= 11) return d.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d{1,2})$/, '.$1-$2');
+    return d.replace(/^(\d{2})(\d)/, '$1.$2').replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3').replace(/\.(\d{3})(\d)/, '.$1/$2').replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+  }
+  function cpfValido(c){
+    if (!/^\d{11}$/.test(c) || /^(\d)\1+$/.test(c)) return false;
+    for (var t = 9; t < 11; t++){ var s = 0; for (var i = 0; i < t; i++) s += c[i] * (t + 1 - i); if (((s * 10) % 11) % 10 != c[t]) return false; }
+    return true;
+  }
+  function cnpjValido(c){
+    if (!/^\d{14}$/.test(c) || /^(\d)\1+$/.test(c)) return false;
+    var dv = function(n){ var s = 0, p = n - 7; for (var i = 0; i < n; i++){ s += c[i] * p--; if (p < 2) p = 9; } var r = s % 11; return r < 2 ? 0 : 11 - r; };
+    return dv(12) == c[12] && dv(13) == c[13];
+  }
+  $('doc').addEventListener('input', function(e){ e.target.value = mascaraDoc(e.target.value); e.target.removeAttribute('aria-invalid'); $('err').textContent = ''; });
+  $('concordo').addEventListener('change', function(){ $('err').textContent = ''; atualizarBotao(); });
+
+  /* ---------- Aceite ---------- */
+  function mensagemApi(j, status){
+    var m = j && (j.mensagem || j.message || j.erro || j.error || j.detail || j.title);
+    if (j && Array.isArray(j.erros) && j.erros.length) m = j.erros.map(function(x){ return x.mensagem || x.message || x; }).join(' ');
+    return typeof m === 'string' && m ? m : 'Não foi possível registrar o aceite (erro ' + status + ').';
+  }
+  $('aceite').addEventListener('submit', function(e){
+    e.preventDefault();
+    if (!leuAteFim || expirado()) return;
+    if (!$('concordo').checked){ $('err').textContent = 'Marque que leu e concorda com o contrato.'; return; }
+    var doc = $('doc').value.replace(/\D/g, '');
+    var ok = doc.length === 11 ? cpfValido(doc) : doc.length === 14 ? cnpjValido(doc) : false;
+    if (!ok){ $('err').textContent = doc ? 'CPF ou CNPJ inválido.' : 'Informe o seu CPF ou CNPJ.'; $('doc').setAttribute('aria-invalid', 'true'); $('doc').focus(); return; }
+    var tk = token || dados.token;
+    if (!tk){ $('err').textContent = 'Este link não tem o token do contrato. Peça o link de aceite ao estacionamento.'; return; }
+    var b = $('btnAceitar'); b.disabled = true; b.textContent = 'Registrando aceite…';
+    var docFmt = mascaraDoc(doc);
+    fetch(API_ACEITAR, { method:'POST', cache:'no-store', headers:{ 'Content-Type':'application/json', 'Accept':'application/json' },
+      body: JSON.stringify({ token: tk, documento: docFmt }) })
+      .then(function(r){
+        return r.text().then(function(t){
+          var j = null; try { j = t ? JSON.parse(t) : null; } catch(er){}
+          if (!r.ok) throw new Error(mensagemApi(j, r.status));
+          var n = j && normalizar(j);
+          if (n && n.aceite){ dados = n; }
+          else {
+            dados.aceite = data(j && campo(j, ['dataAceite','aceitoEm'])) || Date.now();
+            dados.aceiteDoc = txt(j && campo(j, ['aceiteDocumento','documento'])) || docFmt;
+          }
+          render();
+          window.scrollTo({ top: document.body.scrollHeight, behavior:'smooth' });
+          toast('Contrato aceito!');
+        });
+      })
+      .catch(function(er){
+        $('err').textContent = (er && er.message && !/Failed to fetch|NetworkError|Load failed/i.test(er.message))
+          ? er.message : 'Sem conexão com o servidor. Verifique sua internet e tente novamente.';
+      })
+      .then(function(){ b.textContent = 'Aceitar contrato'; atualizarBotao(); });
+  });
+
+  /* ---------- PDF (A4) ---------- */
+  function gerarPdf(){
+    var J = window.jspdf && window.jspdf.jsPDF;
+    if (!J || !dados) return null;
+    var d = dados, doc = new J({ unit:'mm', format:'a4' });
+    var W = 210, H = 297, M = 20, L = W - 2 * M, y = M, pagina = 1;
+    function rodape(){
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); doc.setTextColor(120, 127, 138);
+      if (d.hash) doc.text('Código de verificação: ' + d.hash, M, H - 10);
+      doc.text('Página ' + pagina, W - M, H - 10, { align:'right' });
+    }
+    function espaco(h){ if (y + h > H - 18){ rodape(); doc.addPage(); pagina++; y = M; } }
+    function escrever(texto, tam, estilo, cor, antes, depois, recuo){
+      doc.setFont('helvetica', estilo); doc.setFontSize(tam); doc.setTextColor(cor[0], cor[1], cor[2]);
+      var lh = tam * 0.3528 * 1.45, ls = doc.splitTextToSize(texto, L - (recuo || 0));
+      y += antes || 0;
+      ls.forEach(function(l){ espaco(lh); doc.text(l, M + (recuo || 0), y + lh * 0.75); y += lh; });
+      y += depois || 0;
+    }
+    // cabeçalho
+    doc.setFillColor(20, 24, 31); doc.rect(0, 0, W, 14, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); doc.setTextColor(242, 183, 5);
+    doc.text('CONTRATO DE MENSALISTA', M, 9);
+    doc.setTextColor(214, 219, 227); doc.setFont('helvetica', 'normal');
+    doc.text([d.versao ? 'Versão ' + d.versao : '', d.geracao ? 'Gerado em ' + dataCurta(d.geracao) : ''].filter(Boolean).join(' · '), W - M, 9, { align:'right' });
+    y = 24;
+    blocos(d.conteudo, d.titulo).forEach(function(b){
+      if (b.t === 'cab'){ doc.setFont('helvetica', 'bold'); doc.setFontSize(11.5); doc.setTextColor(20, 24, 31);
+        doc.splitTextToSize(b.s, L).forEach(function(l){ espaco(6); doc.text(l, W / 2, y + 4.5, { align:'center' }); y += 6; }); y += 4; }
+      else if (b.t === 'h') escrever(b.s, 10.5, 'bold', [20, 24, 31], 3, 1);
+      else escrever(b.s, 10, 'normal', [38, 43, 51], 0, 2, b.t === 'item' ? 4 : 0);
+    });
+    // bloco do aceite
+    espaco(30); y += 4;
+    if (aceito()){
+      doc.setDrawColor(47, 181, 102); doc.setFillColor(232, 246, 238); doc.roundedRect(M, y, L, 22, 3, 3, 'FD');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10.5); doc.setTextColor(30, 107, 58);
+      doc.text('ACEITE ELETRÔNICO REGISTRADO', M + 5, y + 8);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(36, 84, 58);
+      doc.text('Aceito em ' + dataHora(d.aceite) + (d.aceiteDoc ? ' · documento ' + d.aceiteDoc : ''), M + 5, y + 15);
+    } else {
+      doc.setDrawColor(218, 221, 226); doc.setFillColor(250, 250, 248); doc.roundedRect(M, y, L, 22, 3, 3, 'FD');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(10.5); doc.setTextColor(20, 24, 31);
+      doc.text('AGUARDANDO ACEITE', M + 5, y + 8);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(9); doc.setTextColor(74, 82, 96);
+      doc.text('O aceite é feito pelo link do contrato' + (d.expira ? ', até ' + dataHora(d.expira) : '') + '.', M + 5, y + 15);
+    }
+    rodape();
+    return doc;
+  }
+  $('btnPdf').addEventListener('click', function(){
+    var doc = gerarPdf();
+    if (!doc){ toast('Sem internet para gerar o PDF. Tente novamente.'); return; }
+    doc.save('contrato-mensalista' + (dados.versao ? '-v' + dados.versao : '') + (aceito() ? '-aceito' : '') + '.pdf');
+    toast('Contrato salvo em PDF');
+  });
+
+  /* ---------- Consulta ---------- */
+  function sessaoApp(){ try { var s = JSON.parse(localStorage.getItem('gipe-auth') || 'null'); return s && s.token ? s.token : null; } catch(e){ return null; } }
+  function consultar(){
+    var url, headers = { 'Accept':'application/json' };
+    if (token) url = API_CONTRATO_TOKEN + encodeURIComponent(token);
+    else {
+      var jwt = sessaoApp();
+      if (!jwt){ mensagem('Faça login no app', 'Para abrir o contrato pelo número do mensalista é preciso estar logado no GIPE neste aparelho.'); return; }
+      url = API_CONTRATO_ID(idMensalista); headers.Authorization = 'Bearer ' + jwt;
+    }
+    fetch(url, { headers: headers, cache:'no-store' })
+      .then(function(r){
+        return r.text().then(function(t){
+          var j = null; try { j = t ? JSON.parse(t) : null; } catch(e){}
+          if (r.status === 401 || r.status === 403){ var e0 = new Error('auth'); e0.auth = true; throw e0; }
+          if (r.status === 404 || r.status === 400){ var e1 = new Error('nao'); e1.naoEncontrado = true; throw e1; }
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          var n = normalizar(j);
+          if (!n){ var e2 = new Error('nao'); e2.naoEncontrado = true; throw e2; }
+          return n;
+        });
+      })
+      .then(function(n){ dados = n; render(); })
+      .catch(function(e){
+        if (e.auth) mensagem(token ? 'Link sem permissão' : 'Sessão expirada', token ? 'Peça um novo link do contrato ao estacionamento.' : 'Entre novamente no app GIPE neste aparelho e abra o link de novo.');
+        else if (e.naoEncontrado) mensagem('Contrato não encontrado', 'Confira o link com o estacionamento.');
+        else { mensagem('Não foi possível carregar', 'Verifique sua internet. Tentaremos de novo em instantes.'); setTimeout(consultar, 20000); }
+      });
+  }
+
+  if (token && !/^[A-Za-z0-9_-]{4,128}$/.test(token)){ mensagem('Link inválido', 'Confira o link do contrato com o estacionamento.'); return; }
+  if (!token && !/^\d{1,10}$/.test(idMensalista)){ mensagem('Link inválido', 'Confira o link do contrato com o estacionamento.'); return; }
+  consultar();
+})();
+</script>
+</body>
+</html>
