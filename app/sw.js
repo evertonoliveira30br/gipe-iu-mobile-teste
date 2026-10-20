@@ -2,7 +2,7 @@
    - Telas do app: busca na rede primeiro (pega atualizações); sem internet, usa a cópia guardada.
    - Bibliotecas, fontes e modelo de placas: usa a cópia guardada (baixa só uma vez).
    - API do GIPE: sempre direto na rede, nunca guardada. */
-var VERSAO = 'gipe-202610191858';
+var VERSAO = 'gipe-202610201424';
 var APP = VERSAO + '-app';
 var LIBS = 'gipe-libs-v1';
 
@@ -12,7 +12,10 @@ var ARQUIVOS_APP = [
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './icons/apple-touch-icon.png'
+  './icons/apple-touch-icon.png',
+  './icons/logo-login.webp',
+  './icons/logo-login-512.png',
+  './icons/favicon-32.png'
 ];
 var MODELO = './plate-model.onnx';
 
