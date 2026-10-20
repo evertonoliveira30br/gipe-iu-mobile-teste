@@ -1119,7 +1119,7 @@
   var XADREZ = 'repeating-conic-gradient(#D5D9DE 0% 25%, #FFFFFF 0% 50%) 50% / 12px 12px';
   var CORES = [['BRANCO','#FFFFFF'],['PRETO','#1A1A1A'],['PRATA','linear-gradient(135deg,#E6E9EC,#AEB4BB)'],['CINZA','#6E747C'],['VERMELHO','#C62828'],
     ['AZUL','#1F4FD6'],['MARROM','#6D4C33'],['BEGE','#D8C7A3'],['VERDE','#2E7D4F'],['AMARELO','#F4C430'],
-    ['LARANJA','#EF6C00'],['DOURADO','linear-gradient(135deg,#F1D78A,#B8892E)'],['ROXO','#6A3FA0'],['VINHO','#7B1E2E'],['OUTRA',XADREZ]];
+    ['LARANJA','#EF6C00'],['DOURADO','linear-gradient(135deg,#F1D78A,#B8892E)'],['ROXO','#6A3FA0'],['VINHO','#7B1E2E'],['ROSA','#E57EA6'],['OUTRA',XADREZ]];
   var CATS = [
     ['moto','Moto','<circle cx="10" cy="22" r="6"/><circle cx="38" cy="22" r="6"/><path d="M10 22l9-10h10l9 10M22 12l-3-5h-4M29 12l4-5h5"/>'],
     ['peq','Carro pequeno','<path d="M12 23h-2v-6l5-7h14l6 7h3v6h-2"/><circle cx="15" cy="23" r="3"/><circle cx="33" cy="23" r="3"/><path d="M18 23h12"/>'],
@@ -1358,6 +1358,7 @@
     if (/DOURAD|OURO/.test(t)) return 'DOURADO'; if (/MARROM|CAFE|BRONZE/.test(t)) return 'MARROM';
     if (/BEGE|CHAMPAGNE|CREME/.test(t)) return 'BEGE'; if (/AMAREL/.test(t)) return 'AMARELO';
     if (/LARANJ/.test(t)) return 'LARANJA'; if (/ROX|LILAS|VIOLET/.test(t)) return 'ROXO';
+    if (/ROSA|PINK/.test(t)) return 'ROSA';
     if (/OUTR/.test(t)) return 'OUTRA';
     return t || null;                    // cor fora da paleta: guarda o nome que veio da API
   }
