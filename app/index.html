@@ -223,6 +223,11 @@
 
   /* =================== APP: cabeçalho, menu inferior e telas =================== */
   :root{ --hdr:56px; --nav:64px; }
+  /* altura real da área visível: o JS grava em px (window.innerHeight); sem JS usa dvh/vh */
+  :root{ --app-h:100vh; }
+  @supports (height:100dvh){ :root{ --app-h:100dvh; } }
+  /* Entrada: a página não rola, só a área do formulário */
+  html:has(body.tela-fixa), body.tela-fixa{ overflow:hidden; overscroll-behavior-y:auto; }
   body{ padding-top:calc(var(--hdr) + env(safe-area-inset-top)); padding-bottom:calc(var(--nav) + env(safe-area-inset-bottom)); }
   .apphdr{position:fixed;top:0;left:0;right:0;z-index:30;background:var(--ink);color:#fff;padding-top:env(safe-area-inset-top)}
   .apphdr .in{max-width:560px;margin:0 auto;height:var(--hdr);display:flex;align-items:center;gap:6px;padding:0 16px}
@@ -239,12 +244,10 @@
   .col{width:100%;max-width:none;gap:0}
   .col-title{display:none}
   .phone{width:100%;max-width:none;height:auto;border-radius:0;box-shadow:none;overflow:visible;
-         min-height:calc(100vh - var(--hdr) - var(--nav));
-         min-height:calc(100dvh - var(--hdr) - var(--nav) - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+         min-height:calc(var(--app-h) - var(--hdr) - var(--nav) - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
   .phone.a > header{display:none}
   /* Tela de entrada: cabe inteira na tela, sem rolagem */
-  .phone.a{height:calc(100vh - var(--hdr) - var(--nav));
-           height:calc(100dvh - var(--hdr) - var(--nav) - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  .phone.a{height:calc(var(--app-h) - var(--hdr) - var(--nav) - env(safe-area-inset-top) - env(safe-area-inset-bottom));
            min-height:0;overflow:hidden}
   .a main{overflow-y:auto;overflow-x:hidden;gap:12px;padding:12px 16px 8px}
   .a .sec{gap:6px}
@@ -301,8 +304,7 @@
 
   /* Saída */
   .saida-frame{display:block;width:100%;border:0;background:#fff;
-               height:calc(100vh - var(--hdr) - var(--nav));
-               height:calc(100dvh - var(--hdr) - var(--nav) - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+               height:calc(var(--app-h) - var(--hdr) - var(--nav) - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
   .mplate .num{font-size:clamp(28px, 9.6vw, 38px)}
   .mplate.antiga .num{font-size:clamp(26px, 9vw, 36px)}
   .pat-tempo b{font-size:20px}
@@ -2028,6 +2030,22 @@
 </script>
 
 <script>
+/* Altura real da tela do celular (evita o botão "Confirmar Entrada" descer ao recarregar
+   quando a barra de endereço do navegador aparece/some) */
+(function(){
+  try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch(e){}
+  var raiz = document.documentElement, ultimo = 0;
+  function medir(){
+    var h = window.innerHeight;
+    if (!h || h === ultimo) return;
+    ultimo = h; raiz.style.setProperty('--app-h', h + 'px');
+  }
+  medir();
+  window.addEventListener('resize', medir);
+  window.addEventListener('orientationchange', function(){ setTimeout(medir, 250); });
+  window.addEventListener('pageshow', function(){ ultimo = 0; medir(); });
+  window.addEventListener('load', function(){ medir(); setTimeout(medir, 300); });
+})();
 /* =====================================================================
    APP · menu inferior (Pátio / Entrada / Saída) e navegação entre telas
    ===================================================================== */
@@ -2270,6 +2288,9 @@
 
   function render(){
     var naEntrada = aba === 'entrada';
+    var fixa = naEntrada && tela === 'A';
+    document.body.classList.toggle('tela-fixa', fixa);
+    if (fixa && window.scrollY) window.scrollTo(0, 0);
     $('colPatio').hidden = aba !== 'patio';
     $('colSaida').hidden = aba !== 'saida';
     $('colA').hidden = !(naEntrada && tela === 'A');
