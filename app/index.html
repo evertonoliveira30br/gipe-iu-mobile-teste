@@ -252,8 +252,9 @@
   .a .plate input{font-size:46px;padding:0 0 4px}
   .a .hint{min-height:16px;font-size:12.5px}
   .a .txt{height:46px}
-  .a .cores{flex-wrap:nowrap;justify-content:space-between;gap:4px}
-  .a .cor{width:36px;height:36px;flex:0 0 36px}
+  .a .cores{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:6px 4px;justify-items:center}
+  .a .cor{width:32px;height:32px;flex:none}
+  .a .cor[aria-pressed="true"]{box-shadow:0 0 0 2px var(--soft),0 0 0 4px var(--ink)}
   .a .cats{gap:6px}
   .a .cat{height:68px;gap:4px;font-size:12.5px}
   .a .cat svg{width:38px;height:26px;flex-shrink:0}
@@ -265,6 +266,8 @@
     .a .plate input{font-size:42px}
     .a .cat{height:60px}
     .a .txt{height:42px}
+    .a .cor{width:28px;height:28px}
+    .a .cores{gap:5px 4px}
   }
   .a footer{padding:10px 16px 12px;background:var(--soft);border-top:1px solid #DADDE2;flex-shrink:0}
   .a .cta{height:52px;font-size:20px}
@@ -1113,7 +1116,10 @@
 
   window.gipePlacaUf = function(s){ var u = ufDaPlaca(String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '')); return u ? { uf:u, nome:UFS[u][0] } : null; };
 
-  var CORES = [['BRANCO','#FFFFFF'],['PRETO','#1A1A1A'],['PRATA','#C3C7CC'],['CINZA','#6E747C'],['VERMELHO','#B3261E'],['AZUL','#1F4FD6'],['VERDE','#2E7D4F'],['BEGE','#D8C7A3']];
+  var XADREZ = 'repeating-conic-gradient(#D5D9DE 0% 25%, #FFFFFF 0% 50%) 50% / 12px 12px';
+  var CORES = [['BRANCO','#FFFFFF'],['PRETO','#1A1A1A'],['PRATA','linear-gradient(135deg,#E6E9EC,#AEB4BB)'],['CINZA','#6E747C'],['VERMELHO','#C62828'],
+    ['AZUL','#1F4FD6'],['MARROM','#6D4C33'],['BEGE','#D8C7A3'],['VERDE','#2E7D4F'],['AMARELO','#F4C430'],
+    ['LARANJA','#EF6C00'],['DOURADO','linear-gradient(135deg,#F1D78A,#B8892E)'],['ROXO','#6A3FA0'],['VINHO','#7B1E2E'],['OUTRA',XADREZ]];
   var CATS = [
     ['moto','Moto','<circle cx="10" cy="22" r="6"/><circle cx="38" cy="22" r="6"/><path d="M10 22l9-10h10l9 10M22 12l-3-5h-4M29 12l4-5h5"/>'],
     ['peq','Carro pequeno','<path d="M12 23h-2v-6l5-7h14l6 7h3v6h-2"/><circle cx="15" cy="23" r="3"/><circle cx="33" cy="23" r="3"/><path d="M18 23h12"/>'],
@@ -1347,8 +1353,12 @@
     if (c) return c[0];
     if (/BRANC/.test(t)) return 'BRANCO'; if (/PRET/.test(t)) return 'PRETO';
     if (/PRAT/.test(t)) return 'PRATA'; if (/CINZ|GRAFITE|CHUMBO/.test(t)) return 'CINZA';
-    if (/VERMELH|VINHO/.test(t)) return 'VERMELHO'; if (/AZUL/.test(t)) return 'AZUL';
-    if (/VERDE/.test(t)) return 'VERDE'; if (/BEGE|DOURAD|MARROM|CHAMPAGNE/.test(t)) return 'BEGE';
+    if (/VINHO|BORDO/.test(t)) return 'VINHO'; if (/VERMELH/.test(t)) return 'VERMELHO';
+    if (/AZUL/.test(t)) return 'AZUL'; if (/VERDE/.test(t)) return 'VERDE';
+    if (/DOURAD|OURO/.test(t)) return 'DOURADO'; if (/MARROM|CAFE|BRONZE/.test(t)) return 'MARROM';
+    if (/BEGE|CHAMPAGNE|CREME/.test(t)) return 'BEGE'; if (/AMAREL/.test(t)) return 'AMARELO';
+    if (/LARANJ/.test(t)) return 'LARANJA'; if (/ROX|LILAS|VIOLET/.test(t)) return 'ROXO';
+    if (/OUTR/.test(t)) return 'OUTRA';
     return t || null;                    // cor fora da paleta: guarda o nome que veio da API
   }
 
