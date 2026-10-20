@@ -8,7 +8,7 @@ PWA do GIPE para o manobrista: login, entrada com leitura automática de placa, 
 | `/app/` | App (instalável como PWA) |
 | `/c/?t=TOKEN` | Comprovante de entrada no celular do cliente |
 | `/r/?t=TOKEN` | Recibo de saída no celular do cliente |
-- `contrato/` — contrato do mensalista: leitura, PDF e aceite (`?t=TOKEN` para o cliente, `?id=N` com o login do app)
+| `/contrato/?t=TOKEN` | Contrato do mensalista: leitura, PDF e aceite (`?id=N` abre pelo login do app) |
 
 Publicado pelo GitHub Pages a partir da branch `main`.
 
