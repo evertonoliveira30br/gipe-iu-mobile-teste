@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="360" height="360" viewBox="0 0 360 360">
+  <defs>
+    <linearGradient id="g" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="360" y2="360">
+      <stop offset="0" stop-color="#2154C2"/><stop offset=".5" stop-color="#173F98"/><stop offset="1" stop-color="#0B2463"/>
+    </linearGradient>
+  </defs>
+  <rect width="360" height="360" rx="54.0" fill="url(#g)"/>
+  <g transform="translate(0.0 0.0) scale(1.0)">
+    <g transform="rotate(13.5 256 117)">
+      <rect x="104" y="106" width="160" height="22" rx="6" fill="#fff"/>
+      <g fill="url(#g)"><rect x="111.0" y="111" width="13" height="12" rx="1.5"/><rect x="133.5" y="111" width="13" height="12" rx="1.5"/><rect x="156.0" y="111" width="13" height="12" rx="1.5"/><rect x="178.5" y="111" width="13" height="12" rx="1.5"/><rect x="201.0" y="111" width="13" height="12" rx="1.5"/><rect x="223.5" y="111" width="13" height="12" rx="1.5"/></g>
+    </g>
+    <rect x="243" y="110" width="20" height="117" rx="4.5" fill="#fff"/>
+    <circle cx="253" cy="118" r="5.6" fill="url(#g)"/>
+    <path d="M136 124h58c6 0 10 3 12.5 8.5L218 160h3c9 0 15 6 15 15v26c0 7-5 11-11 11H105c-6 0-11-4-11-11v-26c0-9 6-15 15-15h3l11.5-27.5c2.5-5.5 6.5-8.5 12.5-8.5z" fill="#fff"/>
+    <path d="M139 136h52c2.5 0 4 1 5 3.5L204 160h-78l8-20.5c1-2.5 2.5-3.5 5-3.5z" fill="url(#g)"/>
+    <rect x="106" y="208" width="26" height="20" rx="5" fill="#fff"/>
+    <rect x="198" y="208" width="26" height="20" rx="5" fill="#fff"/>
+    <circle cx="124" cy="184" r="9.5" fill="url(#g)"/>
+    <circle cx="206" cy="184" r="9.5" fill="url(#g)"/>
+    <rect x="148" y="191" width="34" height="6" rx="3" fill="url(#g)"/><text x="180" y="316" text-anchor="middle" font-family="Poppins" font-weight="700" font-size="70" letter-spacing="17" fill="#fff" style="text-rendering:geometricPrecision">GIPE</text></g>
+</svg>
