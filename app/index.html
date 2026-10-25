@@ -237,7 +237,7 @@
   #hdrBack:not([hidden]) + .hdr-marca{display:none}
   .apphdr button{width:40px;height:40px;margin-left:-10px;border:0;background:transparent;color:#fff;display:flex;align-items:center;justify-content:center;border-radius:10px}
   .tabbar{position:fixed;bottom:0;left:0;right:0;z-index:30;background:var(--ink);border-top:1px solid #22304B;padding-bottom:env(safe-area-inset-bottom)}
-  .tabbar .in{max-width:560px;margin:0 auto;height:var(--nav);display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+  .tabbar .in{max-width:560px;margin:0 auto;height:var(--nav);display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
   .tabbar button{border:0;background:transparent;color:#9AA3B5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12px;font-weight:600;position:relative}
   .tabbar button[aria-current="page"]{color:var(--yellow)}
   .tabbar button[aria-current="page"]::before{content:"";position:absolute;top:0;left:28%;right:28%;height:3px;border-radius:0 0 3px 3px;background:var(--yellow)}
@@ -375,6 +375,44 @@
   .mod-lista .mod-vazio{color:var(--muted);font-size:14px;cursor:default}
   .apphdr .hdr-instalar{margin-left:0;width:auto;height:34px;padding:0 12px;gap:6px;border-radius:999px;background:var(--yellow);color:var(--ink);font-size:13px;font-weight:700}
   .apphdr .hdr-instalar[hidden]{display:none}
+  /* ---------- Caixa e Mais (demonstração) ---------- */
+  .cx,.mais{background:var(--soft);padding:16px;display:flex;flex-direction:column;gap:12px;color:var(--ink)}
+  .demo-faixa{display:flex;gap:8px;align-items:center;background:#FFF6D6;color:#7A5A00;border-radius:12px;padding:10px 12px;font-size:13px;font-weight:600;line-height:1.35}
+  .demo-faixa i{width:8px;height:8px;border-radius:4px;background:#E0A800;flex-shrink:0}
+  .cx-card{background:#fff;border:1px solid #E1DDD0;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:10px}
+  .cx-card .k{font-family:'JetBrains Mono',ui-monospace,monospace;font-weight:500;letter-spacing:.1em}
+  .cx-total{font-size:38px;font-weight:800;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1}
+  .cx-split{display:flex;gap:3px;height:12px;border-radius:6px;overflow:hidden}
+  .cx-leg{display:flex;flex-direction:column}
+  .cx-leg div{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px dashed #E1DDD0;font-size:15px}
+  .cx-leg div:last-child{border-bottom:0}
+  .cx-leg i{width:12px;height:12px;border-radius:4px;flex-shrink:0}
+  .cx-leg b{margin-left:auto;font-variant-numeric:tabular-nums}
+  .cx-leg small{color:var(--muted);font-size:13px;min-width:38px;text-align:right}
+  .cx-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+  .cx-kpis div{background:#fff;border:1px solid #E1DDD0;border-radius:14px;padding:12px 10px;display:flex;flex-direction:column;gap:4px}
+  .cx-kpis span{font-size:12px;color:var(--muted);font-weight:600}
+  .cx-kpis b{font-size:20px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .cx-acoes{display:grid;grid-template-columns:1fr 1.3fr;gap:10px;margin-top:4px}
+  .cx-acoes .cta{font-size:17px}
+  .cx-sec{height:56px;border-radius:14px;border:1.5px solid #857F70;background:transparent;color:var(--ink);font-size:16px;font-weight:700}
+  .mais-perfil{display:flex;align-items:center;gap:12px;background:#fff;border:1px solid #E1DDD0;border-radius:18px;padding:14px}
+  .mais-av{width:46px;height:46px;border-radius:23px;background:var(--ink);color:var(--yellow);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:16px;flex-shrink:0}
+  .mais-perfil b{display:block;font-size:16px}
+  .mais-perfil span{font-size:13px;color:var(--muted)}
+  .mais-perfil .mais-av{color:var(--yellow);font-size:16px}
+  .mais-g{display:flex;flex-direction:column;gap:6px}
+  .mais-g h2{margin:6px 4px 0;font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+  .mais-l{background:#fff;border:1px solid #E1DDD0;border-radius:16px;overflow:hidden}
+  .mais-l button{width:100%;min-height:60px;display:flex;align-items:center;gap:12px;padding:10px 14px;border:0;background:transparent;color:var(--ink);text-align:left;font:inherit}
+  .mais-l button + button{border-top:1px solid #EEEBE2}
+  .mais-l button:active{background:#F1EEE5}
+  .mais-ic{width:36px;height:36px;border-radius:10px;background:#E6E2D6;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .mais-t{flex:1;min-width:0;font-size:15px;font-weight:700}
+  .mais-t small{display:block;font-size:13px;font-weight:500;color:var(--muted);margin-top:2px}
+  .mais-ct{font-size:13px;font-weight:700;background:#E6E2D6;border-radius:999px;padding:3px 9px;font-variant-numeric:tabular-nums}
+  .mais-chev{color:var(--muted);font-size:20px;line-height:1}
+  .mais-rod{text-align:center;font-size:12px;color:var(--muted);padding:8px 0 4px}
 </style>
 </head>
 <body>
@@ -395,6 +433,8 @@
     <button type="button" data-tab="patio"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9.5 17V7h3.5a3 3 0 0 1 0 6H9.5"/></svg><span>Pátio</span></button>
     <button type="button" data-tab="entrada"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg><span>Entrada</span></button>
     <button type="button" data-tab="saida"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span>Saída</span></button>
+    <button type="button" data-tab="caixa"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="13" rx="2.5"/><path d="M2.5 10h19"/><path d="M6.5 15h3"/></svg><span>Caixa</span></button>
+    <button type="button" data-tab="mais"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg><span>Mais</span></button>
   </div>
 </nav>
 
@@ -614,6 +654,53 @@
 <div class="wrap">
 
   <div class="row">
+
+
+    <!-- ================= CAIXA (demonstração) ================= -->
+    <div class="col" id="colCaixa" hidden>
+      <div class="phone cx">
+        <div class="demo-faixa"><i></i>Dados de exemplo. O caixa ainda não está ligado ao sistema.</div>
+        <div class="cx-card">
+          <span class="k">RECEBIDO DESDE 07:00</span>
+          <b class="cx-total">R$ 1.284,00</b>
+          <div class="cx-split" role="img" aria-label="Divisão por forma de pagamento"><i style="flex:512;background:#32BCAD"></i><i style="flex:398;background:#8B7CFF"></i><i style="flex:214;background:#7ED38A"></i><i style="flex:160;background:#FF8FA3"></i></div>
+          <div class="cx-leg"><div><i style="background:#32BCAD"></i>Pix<b>R$ 512,00</b><small>14×</small></div><div><i style="background:#8B7CFF"></i>Crédito<b>R$ 398,00</b><small>9×</small></div><div><i style="background:#7ED38A"></i>Dinheiro<b>R$ 214,00</b><small>8×</small></div><div><i style="background:#FF8FA3"></i>Débito<b>R$ 160,00</b><small>6×</small></div></div>
+        </div>
+        <div class="cx-kpis">
+          <div><span>Tickets pagos</span><b>37</b></div>
+          <div><span>Ticket médio</span><b>R$ 34,70</b></div>
+          <div><span>Mensalistas</span><b>9</b></div>
+        </div>
+        <div class="cx-acoes">
+          <button type="button" class="cx-sec" data-fake="Trocar turno">Trocar turno</button>
+          <button type="button" class="cta" data-fake="Fechar caixa">Fechar caixa</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================= MAIS (demonstração) ================= -->
+    <div class="col" id="colMais" hidden>
+      <div class="phone mais">
+        <div class="mais-perfil"><span class="mais-av" id="maisIni">OP</span><div><b id="maisNome">Operador</b><span>Turno da manhã · desde 07:00</span></div></div>
+        <div class="mais-g"><h2>Clientes</h2><div class="mais-l">
+          <button type="button" data-fake="Mensalistas"><span class="mais-ic"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span><span class="mais-t">Mensalistas<small>Planos e vencimentos</small></span><span class="mais-ct">12</span><span class="mais-chev" aria-hidden="true">›</span></button>
+          <button type="button" data-fake="Convênios"><span class="mais-ic"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="7.5" width="18" height="12" rx="2.5"/><path d="M9 7.5V5.5a1.5 1.5 0 0 1 1.5-1.5h3A1.5 1.5 0 0 1 15 5.5v2"/></svg></span><span class="mais-t">Convênios<small>Empresas parceiras com desconto</small></span><span class="mais-ct">3</span><span class="mais-chev" aria-hidden="true">›</span></button>
+        </div></div>
+        <div class="mais-g"><h2>Operação</h2><div class="mais-l">
+          <button type="button" data-fake="Tabela de preços"><span class="mais-ic"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12.5V5a1.5 1.5 0 0 1 1.5-1.5h7.5l8 8-9 9z"/><circle cx="8.5" cy="8.5" r="1.4"/></svg></span><span class="mais-t">Tabela de preços<small>Faixas por tempo e categoria</small></span><span class="mais-chev" aria-hidden="true">›</span></button>
+          <button type="button" data-fake="Histórico de tickets"><span class="mais-ic"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3.5 4v4h4"/><path d="M12 7.5V12l3 2"/></svg></span><span class="mais-t">Histórico de tickets<small>Entradas e saídas anteriores</small></span><span class="mais-chev" aria-hidden="true">›</span></button>
+          <button type="button" data-fake="Relatórios"><span class="mais-ic"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></svg></span><span class="mais-t">Relatórios<small>Faturamento e ocupação</small></span><span class="mais-chev" aria-hidden="true">›</span></button>
+        </div></div>
+        <div class="mais-g"><h2>Empresa</h2><div class="mais-l">
+          <button type="button" data-fake="Usuários"><span class="mais-ic"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg></span><span class="mais-t">Usuários<small>Operadores e permissões</small></span><span class="mais-ct">2</span><span class="mais-chev" aria-hidden="true">›</span></button>
+          <button type="button" data-fake="Dados do estacionamento"><span class="mais-ic"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V8l8-4 8 4v12"/><path d="M9 20v-5h6v5"/></svg></span><span class="mais-t">Dados do estacionamento<small>Nome, endereço, CNPJ e vagas</small></span><span class="mais-chev" aria-hidden="true">›</span></button>
+        </div></div>
+        <div class="mais-g"><h2>Suporte</h2><div class="mais-l">
+          <button type="button" data-fake="Ajuda e suporte"><span class="mais-ic"><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9.3a2.5 2.5 0 0 1 4.8.9c0 1.7-2.4 2.2-2.4 3.6"/><path d="M12 17h.01"/></svg></span><span class="mais-t">Ajuda e suporte<small>Fale com a gente pelo WhatsApp</small></span><span class="mais-chev" aria-hidden="true">›</span></button>
+        </div></div>
+        <p class="mais-rod">murel · Seu pátio sob controle.</p>
+      </div>
+    </div>
 
     <!-- ================= PÁTIO ================= -->
     <div class="col" id="colPatio" hidden>
@@ -2163,7 +2250,7 @@
    ===================================================================== */
 (function(){
 
-  var TITULOS = { patio:'Pátio', entrada:'Entrada de Veículos', saida:'Saída de Veículos' };
+  var TITULOS = { patio:'Pátio', entrada:'Entrada de Veículos', saida:'Saída de Veículos', caixa:'Caixa do Turno', mais:'Mais' };
   var $ = function(id){ return document.getElementById(id); };
   var aba = null, tela = 'A', ultima = null, relogio = null;
 
@@ -2405,6 +2492,8 @@
     if (fixa && window.scrollY) window.scrollTo(0, 0);
     $('colPatio').hidden = aba !== 'patio';
     $('colSaida').hidden = aba !== 'saida';
+    $('colCaixa').hidden = aba !== 'caixa';
+    $('colMais').hidden = aba !== 'mais';
     $('colA').hidden = !(naEntrada && tela === 'A');
     $('colD').hidden = !(naEntrada && tela === 'D');
     $('colF').hidden = !(naEntrada && tela === 'F');
@@ -2902,6 +2991,25 @@
       aviso('Use o menu do navegador e escolha "Instalar app" ou "Adicionar à tela inicial".');
     }
   });
+})();
+</script>
+<script>
+/* Caixa e Mais: telas de demonstração (ainda sem API) */
+(function(){
+  var el = document.getElementById('toast'), t = null;
+  function avisar(txt){ el.textContent = txt; el.classList.add('show'); clearTimeout(t); t = setTimeout(function(){ el.classList.remove('show'); }, 2600); }
+  document.querySelectorAll('[data-fake]').forEach(function(b){
+    b.addEventListener('click', function(){ avisar(b.dataset.fake + ': em breve na Murel.'); });
+  });
+  try {
+    var s = JSON.parse(localStorage.getItem('gipe-auth') || 'null');
+    var nome = s && (s.nome || s.name);
+    if (nome){
+      document.getElementById('maisNome').textContent = nome;
+      var p = nome.trim().split(/\s+/);
+      document.getElementById('maisIni').textContent = ((p[0] || '')[0] + ((p.length > 1 ? p[p.length - 1] : '')[0] || '')).toUpperCase();
+    }
+  } catch(e){}
 })();
 </script>
 </body>
