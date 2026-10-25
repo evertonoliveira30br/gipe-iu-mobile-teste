@@ -3,30 +3,30 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#14181F">
+<meta name="theme-color" content="#0E1729">
 <meta name="robots" content="noindex">
 <title>Comprovante de Entrada</title>
 <link rel="icon" href="../app/icons/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="../app/icons/favicon-32.png">
 <link rel="apple-touch-icon" href="../app/icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <!-- Gera o PDF do comprovante -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
   :root{
-    --ink:#14181F; --muted:#4A5260; --line:#DADDE2; --soft:#F4F5F2; --white:#FFFFFF;
-    --blue:#1F4FD6; --yellow:#F2B705; --green:#1E6B3A; --red:#B3261E;
+    --ink:#0E1729; --muted:#5A6478; --line:#E1DDD0; --soft:#F4F1E8; --white:#FFFFFF;
+    --blue:#1F4DB3; --yellow:#FFC20E; --green:#177548; --red:#C4302B;
   }
   *{box-sizing:border-box}
   [hidden]{display:none!important}
-  html,body{margin:0;background:var(--soft);color:var(--ink);font-family:'Archivo',system-ui,sans-serif;-webkit-text-size-adjust:100%}
+  html,body{margin:0;background:var(--soft);color:var(--ink);font-family:'Plus Jakarta Sans',system-ui,sans-serif;-webkit-text-size-adjust:100%}
   .app{max-width:480px;margin:0 auto;min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;background:var(--soft)}
   .top{background:var(--ink);color:#fff;padding:calc(22px + env(safe-area-inset-top)) 18px 56px;display:flex;flex-direction:column;gap:4px}
   .kick{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--yellow)}
   .tit{font-size:22px;font-weight:700}
-  .sub{font-size:13px;color:#B9C0CC;line-height:1.4}
+  .sub{font-size:13px;color:#9AA3B5;line-height:1.4}
   .card{margin:-40px 16px 0;background:#fff;border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:16px;border:1px solid var(--line)}
   .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
   .status{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:var(--green)}
@@ -35,15 +35,15 @@
   .tk{font-size:13px;color:var(--muted)}
   .k{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
   .meio{display:flex;flex-direction:column;align-items:center;gap:4px;padding:4px 0}
-  .elapsed{font-family:'Barlow Condensed',sans-serif;font-size:58px;font-weight:700;line-height:1}
+  .elapsed{font-family:'Plus Jakarta Sans',system-ui,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:-.02em;font-size:50px;font-weight:800;line-height:1}
   .valor{font-size:15px;color:var(--muted);text-align:center}
   .valor b{color:var(--ink);font-size:20px}
-  .chip{background:#E8EEFF;color:#1A3A9E;font-size:13px;font-weight:700;padding:6px 12px;border-radius:20px}
+  .chip{background:#DDF3F0;color:#0B5E57;font-size:13px;font-weight:700;padding:6px 12px;border-radius:20px}
   .atu{font-size:12px;color:var(--muted)}
-  .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 10px;border-top:1px solid #E6E8EB;padding-top:14px}
+  .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 10px;border-top:1px solid #E6E2D6;padding-top:14px}
   .grid div{display:flex;flex-direction:column;gap:2px;min-width:0}
   .grid b{font-size:15px;font-weight:600;overflow-wrap:anywhere}
-  .placa{font-family:'Barlow Condensed',sans-serif;font-size:22px!important;font-weight:700!important;letter-spacing:.05em}
+  .placa{font-family:'JetBrains Mono',ui-monospace,Menlo,monospace;font-size:16px!important;font-weight:700!important;letter-spacing:.02em}
   .qrsec{display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px 16px 8px;text-align:center}
   .qrbox{background:#fff;border-radius:16px;padding:12px;border:1px solid var(--line)}
   .qr{width:168px;height:168px;display:flex;align-items:center;justify-content:center}
@@ -60,7 +60,7 @@
   .msg{margin:-40px 16px 0;background:#fff;border-radius:18px;padding:28px 20px;border:1px solid var(--line);text-align:center;display:flex;flex-direction:column;gap:10px;align-items:center;font-size:15px;line-height:1.45;color:var(--muted)}
   .msg b{color:var(--ink);font-size:18px}
   .aviso{margin:12px 16px 0;padding:10px 12px;border-radius:12px;background:#FFF4EC;color:#9A3412;font-size:13px;font-weight:600;text-align:center}
-  .skel{color:transparent!important;background:#ECEEF1;border-radius:6px}
+  .skel{color:transparent!important;background:#E6E2D6;border-radius:6px}
 </style>
 </head>
 <body>
@@ -110,7 +110,7 @@
     </div>
   </div>
 
-  <div class="rod">GIPE · Estacionamento</div>
+  <div class="rod">murel · Seu pátio sob controle.</div>
 </div>
 <div class="toast" id="toast" role="status"></div>
 
