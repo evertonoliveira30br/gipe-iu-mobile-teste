@@ -2,7 +2,7 @@
    - Telas do app: busca na rede primeiro (pega atualizações); sem internet, usa a cópia guardada.
    - Bibliotecas, fontes e modelo de placas: usa a cópia guardada (baixa só uma vez).
    - API (api.gipepark.com.br): sempre direto na rede, nunca guardada. */
-var VERSAO = 'murel-202610251245';
+var VERSAO = 'murel-202610251250';
 var APP = VERSAO + '-app';
 var LIBS = 'gipe-libs-v1';
 

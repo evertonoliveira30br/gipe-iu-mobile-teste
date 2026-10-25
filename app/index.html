@@ -240,7 +240,16 @@
   .tabbar .in{max-width:560px;margin:0 auto;height:var(--nav);display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
   .tabbar button{border:0;background:transparent;color:#9AA3B5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12px;font-weight:600;position:relative}
   .tabbar button[aria-current="page"]{color:var(--yellow)}
-  .tabbar button[aria-current="page"]::before{content:"";position:absolute;top:0;left:28%;right:28%;height:3px;border-radius:0 0 3px 3px;background:var(--yellow)}
+  /* Cada aba é uma vaga vista de cima; na aba ativa a vaga fica amarela e o carro estaciona */
+  .tabbar .vaga{width:24px;height:21px;border:2px solid currentColor;border-bottom:0;border-radius:4px 4px 0 0;display:block;position:relative;margin-bottom:2px}
+  .tabbar .vaga svg{position:absolute;left:50%;top:3px;width:10px;height:16px;transform:translateX(-50%);color:var(--yellow);opacity:0}
+  .tabbar button[aria-current="page"] .vaga{border-color:var(--yellow)}
+  .tabbar button[aria-current="page"] .vaga svg{opacity:1}
+  .tabbar button[aria-current="page"] span{font-weight:800}
+  @media (prefers-reduced-motion:no-preference){
+    .tabbar button[aria-current="page"] .vaga svg{animation:estaciona .5s cubic-bezier(.2,.8,.2,1) both}
+    @keyframes estaciona{from{top:13px;opacity:0}to{top:3px;opacity:1}}
+  }
 
   .wrap{max-width:560px;padding:0}
   .row{display:block}
@@ -430,11 +439,11 @@
 
 <nav class="tabbar" aria-label="Menu">
   <div class="in">
-    <button type="button" data-tab="patio"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9.5 17V7h3.5a3 3 0 0 1 0 6H9.5"/></svg><span>Pátio</span></button>
-    <button type="button" data-tab="entrada"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5"/><path d="M15 12H3"/></svg><span>Entrada</span></button>
-    <button type="button" data-tab="saida"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg><span>Saída</span></button>
-    <button type="button" data-tab="caixa"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="6" width="19" height="13" rx="2.5"/><path d="M2.5 10h19"/><path d="M6.5 15h3"/></svg><span>Caixa</span></button>
-    <button type="button" data-tab="mais"><svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/></svg><span>Mais</span></button>
+    <button type="button" data-tab="patio"><i class="vaga" aria-hidden="true"><svg viewBox="98 58 44 74"><path d="M114 62H126A12 12 0 0 1 138 74V116A12 12 0 0 1 126 128H114A12 12 0 0 1 102 116V74A12 12 0 0 1 114 62Z M106.3 88.5H133.7L130.8 75Q120 71 109.2 75Z M108.8 111H131.2L128.8 120Q120 122.2 111.2 120Z" fill="currentColor" fill-rule="evenodd"/></svg></i><span>Pátio</span></button>
+    <button type="button" data-tab="entrada"><i class="vaga" aria-hidden="true"><svg viewBox="98 58 44 74"><path d="M114 62H126A12 12 0 0 1 138 74V116A12 12 0 0 1 126 128H114A12 12 0 0 1 102 116V74A12 12 0 0 1 114 62Z M106.3 88.5H133.7L130.8 75Q120 71 109.2 75Z M108.8 111H131.2L128.8 120Q120 122.2 111.2 120Z" fill="currentColor" fill-rule="evenodd"/></svg></i><span>Entrada</span></button>
+    <button type="button" data-tab="saida"><i class="vaga" aria-hidden="true"><svg viewBox="98 58 44 74"><path d="M114 62H126A12 12 0 0 1 138 74V116A12 12 0 0 1 126 128H114A12 12 0 0 1 102 116V74A12 12 0 0 1 114 62Z M106.3 88.5H133.7L130.8 75Q120 71 109.2 75Z M108.8 111H131.2L128.8 120Q120 122.2 111.2 120Z" fill="currentColor" fill-rule="evenodd"/></svg></i><span>Saída</span></button>
+    <button type="button" data-tab="caixa"><i class="vaga" aria-hidden="true"><svg viewBox="98 58 44 74"><path d="M114 62H126A12 12 0 0 1 138 74V116A12 12 0 0 1 126 128H114A12 12 0 0 1 102 116V74A12 12 0 0 1 114 62Z M106.3 88.5H133.7L130.8 75Q120 71 109.2 75Z M108.8 111H131.2L128.8 120Q120 122.2 111.2 120Z" fill="currentColor" fill-rule="evenodd"/></svg></i><span>Caixa</span></button>
+    <button type="button" data-tab="mais"><i class="vaga" aria-hidden="true"><svg viewBox="98 58 44 74"><path d="M114 62H126A12 12 0 0 1 138 74V116A12 12 0 0 1 126 128H114A12 12 0 0 1 102 116V74A12 12 0 0 1 114 62Z M106.3 88.5H133.7L130.8 75Q120 71 109.2 75Z M108.8 111H131.2L128.8 120Q120 122.2 111.2 120Z" fill="currentColor" fill-rule="evenodd"/></svg></i><span>Mais</span></button>
   </div>
 </nav>
 
