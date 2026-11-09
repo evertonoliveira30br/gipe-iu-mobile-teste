@@ -503,7 +503,7 @@
    LOGIN · autenticação do operador (o token vem da API, não fica no código)
    ===================================================================== */
 (function(){
-  var URL_LOGIN = 'https://api.gipepark.com.br/api/v1/autenticacao/login';
+  var URL_LOGIN = 'https://api.murel.com.br/api/v1/autenticacao/login';
   var CHAVE = 'gipe-auth', CHAVE_LOGIN = 'gipe-ultimo-login';
   var $ = function(id){ return document.getElementById(id); };
   var sessao = null, timerExp = null;
@@ -1375,7 +1375,7 @@
      API Murel — consulta do veículo e registro da entrada
      ===================================================================== */
   var API = {
-    base:  'https://api.gipepark.com.br/api/v1',
+    base:  'https://api.murel.com.br/api/v1',
     // O token vem do login do operador (tela de login)
     get token(){ return (window.gipeAuth && window.gipeAuth.token()) || ''; },
     // Código numérico de cada categoria na API (ajuste se a numeração da API for outra)

@@ -1,8 +1,8 @@
 /* Service worker do app Murel (PWA)
    - Telas do app: busca na rede primeiro (pega atualizações); sem internet, usa a cópia guardada.
    - Bibliotecas, fontes e modelo de placas: usa a cópia guardada (baixa só uma vez).
-   - API (api.gipepark.com.br): sempre direto na rede, nunca guardada. */
-var VERSAO = 'murel-202611082310';
+   - API (api.murel.com.br): sempre direto na rede, nunca guardada. */
+var VERSAO = 'murel-202611082330';
 var APP = VERSAO + '-app';
 var LIBS = 'gipe-libs-v1';
 
@@ -84,7 +84,7 @@ self.addEventListener('fetch', function(e){
   var req = e.request;
   if (req.method !== 'GET') return;                       // POST da API etc.: segue direto
   var url = new URL(req.url);
-  if (url.hostname === 'api.gipepark.com.br') return;     // API nunca é guardada
+  if (url.hostname === 'api.murel.com.br') return;     // API nunca é guardada
 
   if (HOSTS_LIBS.indexOf(url.hostname) >= 0){ e.respondWith(cacheEmPrimeiro(req)); return; }
   if (url.origin !== self.location.origin) return;
