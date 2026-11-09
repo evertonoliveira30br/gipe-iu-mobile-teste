@@ -223,13 +223,13 @@
   @media (max-width:430px){ .phone{height:auto;min-height:780px} }
 
   /* =================== APP: cabeçalho, menu inferior e telas =================== */
-  :root{ --hdr:56px; --nav:64px; }
+  :root{ --hdr:56px; --nav:64px; --nav-area:calc(var(--nav) + 22px); }
   /* altura real da área visível: o JS grava em px (window.innerHeight); sem JS usa dvh/vh */
   :root{ --app-h:100vh; }
   @supports (height:100dvh){ :root{ --app-h:100dvh; } }
   /* Entrada: a página não rola, só a área do formulário */
   html:has(body.tela-fixa), body.tela-fixa{ overflow:hidden; overscroll-behavior-y:auto; }
-  body{ padding-top:calc(var(--hdr) + env(safe-area-inset-top)); padding-bottom:calc(var(--nav) + env(safe-area-inset-bottom)); }
+  body{ padding-top:calc(var(--hdr) + env(safe-area-inset-top)); padding-bottom:calc(var(--nav-area) + env(safe-area-inset-bottom)); }
   .apphdr{position:fixed;top:0;left:0;right:0;z-index:30;background:var(--ink);color:#fff;padding-top:env(safe-area-inset-top)}
   .apphdr .in{max-width:560px;margin:0 auto;height:var(--hdr);display:flex;align-items:center;gap:6px;padding:0 16px}
   .apphdr h1{margin:0;font-size:18px;font-weight:800;letter-spacing:-.01em}
@@ -240,15 +240,24 @@
   .tabbar .in{max-width:560px;margin:0 auto;height:var(--nav);display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
   .tabbar button{border:0;background:transparent;color:#9AA3B5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:12px;font-weight:600;position:relative}
   .tabbar button[aria-current="page"]{color:var(--yellow)}
-  /* Cada aba é uma vaga vista de cima; na aba ativa a vaga fica amarela e o carro estaciona */
-  .tabbar .vaga{width:24px;height:21px;border:2px solid currentColor;border-bottom:0;border-radius:4px 4px 0 0;display:block;position:relative;margin-bottom:2px}
-  .tabbar .vaga svg{position:absolute;left:50%;top:3px;width:10px;height:16px;transform:translateX(-50%);color:var(--yellow);opacity:0}
-  .tabbar button[aria-current="page"] .vaga{border-color:var(--yellow)}
-  .tabbar button[aria-current="page"] .vaga svg{opacity:1}
+  /* Cada aba tem seu ícone; a ativa fica amarela */
+  .tabbar .ic{width:26px;height:26px;display:block}
   .tabbar button[aria-current="page"] span{font-weight:800}
+  /* Pátio: as vagas da marca; na aba ativa o carro estaciona na vaga do meio */
+  .tabbar .ic-patio{width:34px;height:22px;margin:2px 0}
+  .tabbar .ic-patio .carro{opacity:0}
+  .tabbar button[aria-current="page"] .ic-patio .carro{opacity:1}
+  /* Entrada: botão redondo amarelo com +, sempre em destaque e acima da barra */
+  .tabbar .tab-entrada{justify-content:flex-end;padding-bottom:7px}
+  .tabbar .tab-mais-btn{position:absolute;top:-22px;left:50%;transform:translateX(-50%);width:58px;height:58px;border-radius:50%;
+       background:var(--yellow);color:var(--ink);display:flex;align-items:center;justify-content:center;
+       box-shadow:0 0 0 5px var(--ink),0 6px 16px rgba(0,0,0,.35);transition:transform .15s}
+  .tabbar .tab-mais-btn svg{width:30px;height:30px}
+  .tabbar .tab-entrada:active .tab-mais-btn{transform:translateX(-50%) scale(.94)}
+  .tabbar .tab-entrada[aria-current="page"] .tab-mais-btn{box-shadow:0 0 0 5px var(--ink),0 0 0 7px rgba(255,194,14,.45),0 6px 16px rgba(0,0,0,.35)}
   @media (prefers-reduced-motion:no-preference){
-    .tabbar button[aria-current="page"] .vaga svg{animation:estaciona .5s cubic-bezier(.2,.8,.2,1) both}
-    @keyframes estaciona{from{top:13px;opacity:0}to{top:3px;opacity:1}}
+    .tabbar button[aria-current="page"] .ic-patio .carro{animation:estaciona .5s cubic-bezier(.2,.8,.2,1) both}
+    @keyframes estaciona{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
   }
 
   .wrap{max-width:560px;padding:0}
@@ -256,10 +265,10 @@
   .col{width:100%;max-width:none;gap:0}
   .col-title{display:none}
   .phone{width:100%;max-width:none;height:auto;border-radius:0;box-shadow:none;overflow:visible;
-         min-height:calc(var(--app-h) - var(--hdr) - var(--nav) - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+         min-height:calc(var(--app-h) - var(--hdr) - var(--nav-area) - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
   .phone.a > header{display:none}
   /* Tela de entrada: cabe inteira na tela, sem rolagem */
-  .phone.a{height:calc(var(--app-h) - var(--hdr) - var(--nav) - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  .phone.a{height:calc(var(--app-h) - var(--hdr) - var(--nav-area) - env(safe-area-inset-top) - env(safe-area-inset-bottom));
            min-height:0;overflow:hidden}
   .a main{overflow-y:auto;overflow-x:hidden;gap:12px;padding:12px 16px 8px}
   .a .sec{gap:6px}
@@ -287,7 +296,7 @@
   }
   .a footer{padding:10px 16px 12px;background:var(--soft);border-top:1px solid #E1DDD0;flex-shrink:0}
   .a .cta{height:52px;font-size:20px}
-  .toast{z-index:40;bottom:calc(var(--nav) + 16px + env(safe-area-inset-bottom))}
+  .toast{z-index:40;bottom:calc(var(--nav-area) + 16px + env(safe-area-inset-bottom))}
   .cli-link{border:0;background:transparent;color:#fff;text-decoration:underline;font-size:14px;font-weight:600;padding:6px;align-self:center}
 
   /* Pátio */
@@ -317,7 +326,7 @@
 
   /* Saída */
   .saida-frame{display:block;width:100%;border:0;background:#fff;
-               height:calc(var(--app-h) - var(--hdr) - var(--nav) - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
+               height:calc(var(--app-h) - var(--hdr) - var(--nav-area) - env(safe-area-inset-top) - env(safe-area-inset-bottom))}
   .mplate .num{font-size:clamp(21px, 7vw, 28px)}
   .mplate.antiga .num{font-size:clamp(19px, 6.6vw, 26px)}
   .pat-tempo b{font-size:18px}
@@ -439,11 +448,11 @@
 
 <nav class="tabbar" aria-label="Menu">
   <div class="in">
-    <button type="button" data-tab="patio"><i class="vaga" aria-hidden="true"><svg viewBox="98 58 44 74"><path d="M114 62H126A12 12 0 0 1 138 74V116A12 12 0 0 1 126 128H114A12 12 0 0 1 102 116V74A12 12 0 0 1 114 62Z M106.3 88.5H133.7L130.8 75Q120 71 109.2 75Z M108.8 111H131.2L128.8 120Q120 122.2 111.2 120Z" fill="currentColor" fill-rule="evenodd"/></svg></i><span>Pátio</span></button>
-    <button type="button" data-tab="entrada"><i class="vaga" aria-hidden="true"><svg viewBox="98 58 44 74"><path d="M114 62H126A12 12 0 0 1 138 74V116A12 12 0 0 1 126 128H114A12 12 0 0 1 102 116V74A12 12 0 0 1 114 62Z M106.3 88.5H133.7L130.8 75Q120 71 109.2 75Z M108.8 111H131.2L128.8 120Q120 122.2 111.2 120Z" fill="currentColor" fill-rule="evenodd"/></svg></i><span>Entrada</span></button>
-    <button type="button" data-tab="saida"><i class="vaga" aria-hidden="true"><svg viewBox="98 58 44 74"><path d="M114 62H126A12 12 0 0 1 138 74V116A12 12 0 0 1 126 128H114A12 12 0 0 1 102 116V74A12 12 0 0 1 114 62Z M106.3 88.5H133.7L130.8 75Q120 71 109.2 75Z M108.8 111H131.2L128.8 120Q120 122.2 111.2 120Z" fill="currentColor" fill-rule="evenodd"/></svg></i><span>Saída</span></button>
-    <button type="button" data-tab="caixa"><i class="vaga" aria-hidden="true"><svg viewBox="98 58 44 74"><path d="M114 62H126A12 12 0 0 1 138 74V116A12 12 0 0 1 126 128H114A12 12 0 0 1 102 116V74A12 12 0 0 1 114 62Z M106.3 88.5H133.7L130.8 75Q120 71 109.2 75Z M108.8 111H131.2L128.8 120Q120 122.2 111.2 120Z" fill="currentColor" fill-rule="evenodd"/></svg></i><span>Caixa</span></button>
-    <button type="button" data-tab="mais"><i class="vaga" aria-hidden="true"><svg viewBox="98 58 44 74"><path d="M114 62H126A12 12 0 0 1 138 74V116A12 12 0 0 1 126 128H114A12 12 0 0 1 102 116V74A12 12 0 0 1 114 62Z M106.3 88.5H133.7L130.8 75Q120 71 109.2 75Z M108.8 111H131.2L128.8 120Q120 122.2 111.2 120Z" fill="currentColor" fill-rule="evenodd"/></svg></i><span>Mais</span></button>
+    <button type="button" data-tab="patio"><svg class="ic ic-patio" viewBox="4 8 232 148" aria-hidden="true"><path d="M20 140V24H220V140M82 24V140M158 24V140" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><path class="carro" d="M114 62H126A12 12 0 0 1 138 74V116A12 12 0 0 1 126 128H114A12 12 0 0 1 102 116V74A12 12 0 0 1 114 62Z M106.3 88.5H133.7L130.8 75Q120 71 109.2 75Z M108.8 111H131.2L128.8 120Q120 122.2 111.2 120Z" fill="currentColor" fill-rule="evenodd"/></svg><span>Pátio</span></button>
+    <button type="button" data-tab="caixa"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5v5M18 9.5v5"/></svg><span>Caixa</span></button>
+    <button type="button" data-tab="entrada" class="tab-entrada"><i class="tab-mais-btn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></i><span>Entrada</span></button>
+    <button type="button" data-tab="saida"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4H6.5A2.5 2.5 0 0 0 4 6.5v11A2.5 2.5 0 0 0 6.5 20H14"/><path d="M10 12h11M17 8l4 4-4 4"/></svg><span>Saída</span></button>
+    <button type="button" data-tab="mais"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg><span>Mais</span></button>
   </div>
 </nav>
 
