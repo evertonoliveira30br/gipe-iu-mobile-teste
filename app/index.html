@@ -243,10 +243,6 @@
   /* Cada aba tem seu ícone; a ativa fica amarela */
   .tabbar .ic{width:26px;height:26px;display:block}
   .tabbar button[aria-current="page"] span{font-weight:800}
-  /* Pátio: as vagas da marca; na aba ativa o carro estaciona na vaga do meio */
-  .tabbar .ic-patio{width:34px;height:22px;margin:2px 0}
-  .tabbar .ic-patio .carro{opacity:0}
-  .tabbar button[aria-current="page"] .ic-patio .carro{opacity:1}
   /* Entrada: botão redondo amarelo com +, sempre em destaque e acima da barra */
   .tabbar .tab-entrada{justify-content:flex-end;padding-bottom:7px}
   .tabbar .tab-mais-btn{position:absolute;top:-22px;left:50%;transform:translateX(-50%);width:58px;height:58px;border-radius:50%;
@@ -255,10 +251,6 @@
   .tabbar .tab-mais-btn svg{width:30px;height:30px}
   .tabbar .tab-entrada:active .tab-mais-btn{transform:translateX(-50%) scale(.94)}
   .tabbar .tab-entrada[aria-current="page"] .tab-mais-btn{box-shadow:0 0 0 5px var(--ink),0 0 0 7px rgba(255,194,14,.45),0 6px 16px rgba(0,0,0,.35)}
-  @media (prefers-reduced-motion:no-preference){
-    .tabbar button[aria-current="page"] .ic-patio .carro{animation:estaciona .5s cubic-bezier(.2,.8,.2,1) both}
-    @keyframes estaciona{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
-  }
 
   .wrap{max-width:560px;padding:0}
   .row{display:block}
@@ -448,7 +440,7 @@
 
 <nav class="tabbar" aria-label="Menu">
   <div class="in">
-    <button type="button" data-tab="patio"><svg class="ic ic-patio" viewBox="4 8 232 148" aria-hidden="true"><path d="M20 140V24H220V140M82 24V140M158 24V140" fill="none" stroke="currentColor" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/><path class="carro" d="M114 62H126A12 12 0 0 1 138 74V116A12 12 0 0 1 126 128H114A12 12 0 0 1 102 116V74A12 12 0 0 1 114 62Z M106.3 88.5H133.7L130.8 75Q120 71 109.2 75Z M108.8 111H131.2L128.8 120Q120 122.2 111.2 120Z" fill="currentColor" fill-rule="evenodd"/></svg><span>Pátio</span></button>
+    <button type="button" data-tab="patio"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="3.5" width="17" height="17" rx="4"/><path d="M10 17V7h3a3 3 0 0 1 0 6h-3" stroke-width="2.4"/></svg><span>Pátio</span></button>
     <button type="button" data-tab="caixa"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="6" width="19" height="12" rx="2.5"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.5v5M18 9.5v5"/></svg><span>Caixa</span></button>
     <button type="button" data-tab="entrada" class="tab-entrada"><i class="tab-mais-btn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></i><span>Entrada</span></button>
     <button type="button" data-tab="saida"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 4H6.5A2.5 2.5 0 0 0 4 6.5v11A2.5 2.5 0 0 0 6.5 20H14"/><path d="M10 12h11M17 8l4 4-4 4"/></svg><span>Saída</span></button>
