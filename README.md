@@ -14,6 +14,6 @@ PWA da Murel para o manobrista: login, entrada com leitura automática de placa,
 
 Publicado pelo GitHub Pages a partir da branch `main`.
 
-Identidade visual: cores e fontes da marca Murel (asfalto `#0E1729`, faixa `#FFC20E`, giz `#F4F1E8`; Plus Jakarta Sans e JetBrains Mono para placas). O endereço da API (`api.gipepark.com.br`) e as chaves salvas no aparelho (`gipe-*`) continuam com o nome antigo para não deslogar ninguém.
+Identidade visual: cores e fontes da marca Murel (asfalto `#0E1729`, faixa `#FFC20E`, giz `#F4F1E8`; Plus Jakarta Sans e JetBrains Mono para placas). A API é a `api.murel.com.br`. As chaves salvas no aparelho (`gipe-*`) continuam com o nome antigo para não deslogar ninguém.
 
 OCR de placas: modelo `cct_s_v2_global` do [fast-plate-ocr](https://github.com/ankandrew/fast-plate-ocr) (licença MIT).
